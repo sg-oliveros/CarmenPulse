@@ -139,12 +139,12 @@ fun MedicalServicesScreen() {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Medical Hub",
+                                text = "CarmenPulse",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Text(text = "Services & Schedules", style = MaterialTheme.typography.bodySmall)
+                            Text(text = "Barangay Carmen, CDO", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 },

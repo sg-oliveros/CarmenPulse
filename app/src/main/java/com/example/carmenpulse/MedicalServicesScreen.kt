@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -57,7 +58,7 @@ fun MedicalServicesScreen() {
         "Pediatrics",
         "Maternal Health",
         "Maintenance Medicine",
-        "Disease Screening"
+        "Disease Screening",
     )
 
     val carmenMedicalServicesList = remember {
@@ -286,7 +287,7 @@ fun MedicalServicesScreen() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(50.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center
@@ -324,6 +325,17 @@ fun MedicalServicesScreen() {
                         }
                     }
                 },
+                actions = {
+                    if (selectedService == null) {
+                        IconButton(onClick = {}) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
@@ -335,9 +347,10 @@ fun MedicalServicesScreen() {
         ) {
             if (selectedService != null) {
                 ServiceDetailView(
-                    service = selectedService!!,
-                    onBackClick = { selectedService = null }
-                )
+                    service = selectedService!!
+                ) {
+                    selectedService = null
+                }
             } else {
                 ServiceDirectoryListView(
                     services = filteredServices,
@@ -392,10 +405,9 @@ fun ServiceDirectoryListView(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "Services Directory Guide for the residents.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = "Permanent reference guide for operating hours, room locations, and required IDs.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -408,7 +420,7 @@ fun ServiceDirectoryListView(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search treatment", style = MaterialTheme.typography.bodyMedium) },
+            placeholder = { Text("Search treatment, room, or ID...", style = MaterialTheme.typography.bodyMedium) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
@@ -911,7 +923,7 @@ fun ServiceDetailView(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Back to Services Directory",
+                    text = "Back to Services Directory Guide",
                     fontWeight = FontWeight.Bold
                 )
             }

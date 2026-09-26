@@ -363,7 +363,7 @@ fun CommunityDiscussionScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 ) {
                                     Text(
-                                        text = "📢 Linked Announcement Thread",
+                                        text = "Linked Announcement Thread",
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,

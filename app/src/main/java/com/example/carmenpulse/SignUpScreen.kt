@@ -16,6 +16,7 @@ import com.example.carmenpulse.ui.components.CustomTextField
 
 @Composable
 fun SignUpScreen(onNavigateToLogin: () -> Unit) {
+    // State variables for sign-up form inputs and password visibility toggle
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -26,10 +27,18 @@ fun SignUpScreen(onNavigateToLogin: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Top spacing to keep the form away from the green background curve
+        Spacer(modifier = Modifier.height(75.dp))
+
+        // Full Name input field
         CustomTextField(value = fullName, onValueChange = { fullName = it }, label = "Full Name")
         Spacer(modifier = Modifier.height(12.dp))
+
+        // E-mail input field
         CustomTextField(value = email, onValueChange = { email = it }, label = "E-mail")
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Password input field
         CustomTextField(
             value = password,
             onValueChange = { password = it },
@@ -39,6 +48,8 @@ fun SignUpScreen(onNavigateToLogin: () -> Unit) {
             onVisibilityToggle = { passwordVisible = !passwordVisible }
         )
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Confirm Password input field
         CustomTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
@@ -50,8 +61,9 @@ fun SignUpScreen(onNavigateToLogin: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
+        // Sign Up submit button
         Button(
-            onClick = { /* Handle Sign Up */ },
+            onClick = { /* TODO: Implement sign-up registration logic */ },
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
             shape = RoundedCornerShape(30.dp),
@@ -62,6 +74,7 @@ fun SignUpScreen(onNavigateToLogin: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Bottom row to navigate back to the Login screen
         Row {
             Text("Already Have An Account? ", color = Color.White, fontSize = 12.sp)
             Text(

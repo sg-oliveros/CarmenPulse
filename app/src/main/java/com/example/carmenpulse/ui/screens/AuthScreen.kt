@@ -33,7 +33,7 @@ fun AuthScreen() {
         CurvedBackground(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 180.dp)
+                .padding(top = 220.dp)
         )
 
         // UI Content Overlay Layer
@@ -41,7 +41,7 @@ fun AuthScreen() {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(90.dp))
 
             // App Title Logo with Heartbeat
             LogoWithHeartbeat()
@@ -54,7 +54,7 @@ fun AuthScreen() {
                 onToggle = { isLoginSelected = it }
             )
 
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(60.dp))
 
             // Form Content Layer
             Box(

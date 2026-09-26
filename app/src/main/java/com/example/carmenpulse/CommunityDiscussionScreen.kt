@@ -23,16 +23,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+//represents an individual comment or message inside a forum thread
 data class ForumComment(
     val id: String,
     val author: String,
     val role: String,
-    val isOfficialStaff: Boolean,
+    val isOfficialStaff: Boolean, //true if posted by a BHW health worker
     val message: String,
-    val timestamp: String,
-    val userPurok: String = "Purok 1"
+    val timestamp: String
 )
 
+//represents a discussion thread tied to a specific health advisory or announcement
 data class ForumThread(
     val advisoryId: String,
     val title: String,
@@ -49,7 +50,7 @@ fun CommunityDiscussionScreen(
     currentUser: UserData? = null,
     onBack: () -> Unit = {}
 ) {
-    // Linked announcement forum threads store
+    // Linked announcement forum threads store | mock database of threads
     val threadsMap = remember {
         mutableStateMapOf(
             "1" to ForumThread(
@@ -65,8 +66,7 @@ fun CommunityDiscussionScreen(
                         role = "Resident",
                         isOfficialStaff = false,
                         message = "Will the misting team cover inner alleys in Purok 3?",
-                        timestamp = "2 hours ago",
-                        userPurok = "Purok 3"
+                        timestamp = "2 hours ago"
                     ),
                     ForumComment(
                         id = "102",
@@ -74,8 +74,7 @@ fun CommunityDiscussionScreen(
                         role = "BHW / Health Staff",
                         isOfficialStaff = true,
                         message = "Magandang araw! Yes, the misting team will move street-by-street starting 7:00 AM. Please keep windows open and cover exposed food.",
-                        timestamp = "1 hour ago",
-                        userPurok = "Health Center"
+                        timestamp = "1 hour ago"
                     )
                 )
             ),
@@ -92,8 +91,7 @@ fun CommunityDiscussionScreen(
                         role = "Resident",
                         isOfficialStaff = false,
                         message = "What time should I line up for Saturday's dental mission?",
-                        timestamp = "3 hours ago",
-                        userPurok = "Purok 2"
+                        timestamp = "3 hours ago"
                     ),
                     ForumComment(
                         id = "202",
@@ -101,8 +99,7 @@ fun CommunityDiscussionScreen(
                         role = "BHW Health Staff",
                         isOfficialStaff = true,
                         message = "Maayong buntag! Triage and line-up start at 7:30 AM outside Room 103 (Dental Clinic). Please bring a valid ID and resident clearance.",
-                        timestamp = "2 hours ago",
-                        userPurok = "Room 103"
+                        timestamp = "2 hours ago"
                     ),
                     ForumComment(
                         id = "203",
@@ -110,8 +107,7 @@ fun CommunityDiscussionScreen(
                         role = "Resident",
                         isOfficialStaff = false,
                         message = "Are children allowed for tooth extraction or checkup?",
-                        timestamp = "1 hour ago",
-                        userPurok = "Purok 1"
+                        timestamp = "1 hour ago"
                     ),
                     ForumComment(
                         id = "204",
@@ -119,8 +115,7 @@ fun CommunityDiscussionScreen(
                         role = "Municipal Physician",
                         isOfficialStaff = true,
                         message = "Yes, pediatric dental checkups and fluoride applications are available for children aged 5 and above.",
-                        timestamp = "30 mins ago",
-                        userPurok = "Room 101"
+                        timestamp = "30 mins ago"
                     )
                 )
             ),
@@ -137,8 +132,7 @@ fun CommunityDiscussionScreen(
                         role = "Resident",
                         isOfficialStaff = false,
                         message = "What if my baby missed the 3rd dose of Pentavalent vaccine?",
-                        timestamp = "Yesterday",
-                        userPurok = "Purok 4"
+                        timestamp = "Yesterday"
                     ),
                     ForumComment(
                         id = "302",
@@ -146,8 +140,7 @@ fun CommunityDiscussionScreen(
                         role = "BHW / Pediatrics",
                         isOfficialStaff = true,
                         message = "You can get catch-up doses during this Wednesday session in Room 104. Just bring your baby's Pink Immunization Book.",
-                        timestamp = "Yesterday",
-                        userPurok = "Room 104"
+                        timestamp = "Yesterday"
                     )
                 )
             ),
@@ -164,8 +157,7 @@ fun CommunityDiscussionScreen(
                         role = "Resident",
                         isOfficialStaff = false,
                         message = "What are the operating hours of the Health Center Pharmacy for senior medicines?",
-                        timestamp = "4 hours ago",
-                        userPurok = "Purok 1"
+                        timestamp = "4 hours ago"
                     ),
                     ForumComment(
                         id = "402",
@@ -173,24 +165,25 @@ fun CommunityDiscussionScreen(
                         role = "BHW / Health Staff",
                         isOfficialStaff = true,
                         message = "Senior NCD maintenance medicine distribution takes place every 4th Thursday of the month from 8:00 AM to 5:00 PM in Room 106.",
-                        timestamp = "3 hours ago",
-                        userPurok = "Room 106"
+                        timestamp = "3 hours ago"
                     )
                 )
             )
         )
     }
 
-    // Active thread state
+    // Active thread state | tracks with announcement tab the user clicked on
     var activeThreadId by remember(initialAdvisory) {
         mutableStateOf(initialAdvisory?.id ?: "2")
     }
 
+    //holds whatever text the user is typing into the comment box
     var commentInput by remember { mutableStateOf("") }
 
+    //this grabs the exact thread object corresponding to the currently selected tab
     val activeThread = threadsMap[activeThreadId] ?: threadsMap["2"]!!
 
-    Scaffold(
+    Scaffold( //header section with title and back nav button
         topBar = {
             TopAppBar(
                 title = {
@@ -227,6 +220,7 @@ fun CommunityDiscussionScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
+        //text field input and send button for posting new comments
         bottomBar = {
             Surface(
                 tonalElevation = 8.dp,
@@ -240,6 +234,7 @@ fun CommunityDiscussionScreen(
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    //text input field for typing quations
                     OutlinedTextField(
                         value = commentInput,
                         onValueChange = { commentInput = it },
@@ -260,11 +255,14 @@ fun CommunityDiscussionScreen(
                         )
                     )
 
+                    //send button action
                     IconButton(
                         onClick = {
                             if (commentInput.isNotBlank()) {
                                 val authorName = currentUser?.name ?: "You (Resident)"
                                 val residentPurok = currentUser?.purok ?: "Purok 1"
+
+                                //adds the newly typed comment directly into the active thread
                                 activeThread.comments.add(
                                     ForumComment(
                                         id = System.currentTimeMillis().toString(),
@@ -272,11 +270,10 @@ fun CommunityDiscussionScreen(
                                         role = "Resident",
                                         isOfficialStaff = false,
                                         message = commentInput.trim(),
-                                        timestamp = "Just now",
-                                        userPurok = residentPurok
+                                        timestamp = "Just now"
                                     )
                                 )
-                                commentInput = ""
+                                commentInput = "" //clears out the input field after it is sent
                             }
                         },
                         modifier = Modifier
@@ -299,7 +296,7 @@ fun CommunityDiscussionScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Thread Switcher Pills (All Linked Announcement Threads)
+            // horizontal filter chips to switch between announcements
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier.fillMaxWidth()
@@ -337,6 +334,7 @@ fun CommunityDiscussionScreen(
                 }
             }
 
+            //this displays announcement summary card and all comment bubbles
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -345,7 +343,7 @@ fun CommunityDiscussionScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                // Linked Announcement Context Header Card
+                // shows details of the selected topic
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -429,6 +427,7 @@ fun CommunityDiscussionScreen(
                     )
                 }
 
+                //loops trough each comment in the active thread
                 items(activeThread.comments) { comment ->
                     CommentBubble(comment = comment)
                 }
@@ -442,6 +441,8 @@ fun CommunityDiscussionScreen(
 @Composable
 fun CommentBubble(comment: ForumComment) {
     val isBHW = comment.isOfficialStaff
+
+    //BHW staff cards get a tinted container; residents have a white card
     val bubbleColor = if (isBHW) MaterialTheme.colorScheme.secondaryContainer else Color.White
     val border = if (isBHW) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -472,6 +473,7 @@ fun CommentBubble(comment: ForumComment) {
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    //show green verifiedd badge for BHW staff, or simple purok tag for residents
                     if (isBHW) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -502,7 +504,7 @@ fun CommentBubble(comment: ForumComment) {
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
-                                text = "👤 ${comment.userPurok}",
+                                text = "${comment.role}",
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant

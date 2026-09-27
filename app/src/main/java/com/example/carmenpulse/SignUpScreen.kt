@@ -15,7 +15,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import com.example.carmenpulse.ui.components.CustomTextField
 
 @Composable
-fun SignUpScreen(onNavigateToLogin: () -> Unit) {
+fun SignUpScreen(
+    onNavigateToLogin: () -> Unit,
+    onSignUpSuccess: () -> Unit
+) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -51,9 +54,12 @@ fun SignUpScreen(onNavigateToLogin: () -> Unit) {
         Spacer(modifier = Modifier.height(48.dp))
 
         Button(
-            onClick = { /* Handle Sign Up */ },
+            onClick = { 
+                // Handle Sign Up logic / validation here
+                onSignUpSuccess() 
+            },
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {

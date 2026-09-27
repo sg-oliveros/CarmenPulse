@@ -10,5 +10,6 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
+val LoginGreen = Color(0xFF2E7D32) // Exact shade of green from the login screen
 val DarkGreen = Color(0xFF006400)
-val BrandGreen = Color(0xFF4CAF50) // Example brand green color
+val BrandGreen = Color(0xFF4CAF50)

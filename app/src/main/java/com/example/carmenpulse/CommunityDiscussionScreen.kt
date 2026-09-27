@@ -43,6 +43,14 @@ data class ForumThread(
     val comments: MutableList<ForumComment>
 )
 
+data class UserData(
+    val id: String = "",
+    val name: String = "",
+    val email: String = "",
+    val purok: String = "Purok 1",
+    val role: String = "Resident"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommunityDiscussionScreen(

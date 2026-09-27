@@ -16,7 +16,10 @@ import com.example.carmenpulse.ui.components.CustomTextField
 import com.example.carmenpulse.ui.theme.DarkGreen
 
 @Composable
-fun LoginScreen(onNavigateToSignUp: () -> Unit) {
+fun LoginScreen(
+    onNavigateToSignUp: () -> Unit,
+    onLoginSuccess: () -> Unit
+) {
     // State variables for form inputs and password visibility toggle
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -60,9 +63,12 @@ fun LoginScreen(onNavigateToSignUp: () -> Unit) {
 
         // Login submit button
         Button(
-            onClick = { /* TODO: Implement authentication login logic */ },
+            onClick = { 
+                // Handle authentication login logic and navigate to homepage
+                onLoginSuccess() 
+            },
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {

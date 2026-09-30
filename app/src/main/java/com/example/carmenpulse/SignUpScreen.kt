@@ -16,8 +16,8 @@ import com.example.carmenpulse.ui.components.CustomTextField
 
 @Composable
 fun SignUpScreen(
-    onNavigateToLogin: () -> Unit,
-    onSignUpSuccess: () -> Unit
+    onNavigateToLogin: () -> Unit = {},
+    onSignUpSuccess: (name: String, email: String) -> Unit = { _, _ -> }
 ) {
     // State variables for sign-up form inputs and password visibility toggle
     var fullName by remember { mutableStateOf("") }
@@ -68,7 +68,10 @@ fun SignUpScreen(
         Button(
             onClick = { 
                 // Handle sign-up registration logic and navigate to homepage
-                onSignUpSuccess() 
+                onSignUpSuccess(
+                    fullName.trim().ifBlank { "Resident" },
+                    email.trim().ifBlank { "resident@example.com" }
+                ) 
             },
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

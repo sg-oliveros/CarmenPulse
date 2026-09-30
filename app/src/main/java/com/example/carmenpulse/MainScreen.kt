@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun MainScreen(
+    currentUser: UserData = UserData(name = "Resident", email = "resident@example.com"),
     onLogout: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -57,6 +58,7 @@ fun MainScreen(
         ) {
             when (selectedTab) {
                 0 -> HomeAdvisoriesFeedScreen(
+                    userName = currentUser.name,
                     onCommentClick = { advisory ->
                         // Switch to Forum tab (index 2) when Q&A thread is clicked
                         selectedTab = 2
@@ -64,9 +66,13 @@ fun MainScreen(
                 )
                 1 -> MedicalServicesScreen()
                 2 -> CommunityDiscussionScreen(
+                    currentUser = currentUser,
                     onBack = { selectedTab = 0 }
                 )
-                3 -> ProfileScreen(onLogout = onLogout)
+                3 -> ProfileScreen(
+                    currentUser = currentUser,
+                    onLogout = onLogout
+                )
             }
         }
     }

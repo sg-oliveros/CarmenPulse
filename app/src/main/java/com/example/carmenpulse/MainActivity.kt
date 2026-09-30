@@ -30,14 +30,32 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var isLoggedIn by remember { mutableStateOf(false) }
+                    var currentUser by remember {
+                        mutableStateOf(UserData(name = "Resident", email = "resident@example.com", purok = ""))
+                    }
 
                     if (isLoggedIn) {
                         MainScreen(
+                            currentUser = currentUser,
                             onLogout = { isLoggedIn = false }
                         )
                     } else {
                         AuthScreen(
-                            onLoginSuccess = { isLoggedIn = true }
+                            onLoginSuccess = { email, name ->
+                                currentUser = currentUser.copy(
+                                    name = name,
+                                    email = email
+                                )
+                                isLoggedIn = true
+                            },
+                            onSignUpSuccess = { name, email ->
+                                currentUser = currentUser.copy(
+                                    name = name,
+                                    email = email,
+                                    purok = "" // Empty initially upon sign up; user can fill in on profile screen
+                                )
+                                isLoggedIn = true
+                            }
                         )
                     }
                 }

@@ -12,31 +12,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carmenpulse.ui.components.CustomTextField
-import com.example.carmenpulse.ui.theme.DarkGreen
 
 @Composable
 fun LoginScreen(
     onNavigateToSignUp: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    // State variables for form inputs and password visibility toggle
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val authState by authViewModel.authState.collectAsState()
+    val isLoading = authState is AuthState.Loading
+
+    // Only navigate in once Supabase actually confirms success,
+    // then reset so this leftover state can't leak into another screen.
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onLoginSuccess()
+            authViewModel.resetState()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top spacing to keep the form away from the green background curve
         Spacer(modifier = Modifier.height(75.dp))
 
-        // E-mail input field
         CustomTextField(value = email, onValueChange = { email = it }, label = "E-mail")
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Password input field with visibility toggle
         CustomTextField(
             value = password,
             onValueChange = { password = it },
@@ -46,7 +55,15 @@ fun LoginScreen(
             onVisibilityToggle = { passwordVisible = !passwordVisible }
         )
 
-        // Forgot password action link
+        if (authState is AuthState.Error) {
+            Text(
+                text = (authState as AuthState.Error).message,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
         Text(
             text = "Forgot Password ?",
             color = Color.White,
@@ -61,23 +78,23 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(80.dp))
 
-        // Login submit button
         Button(
-            onClick = { 
-                // Handle authentication login logic and navigate to homepage
-                onLoginSuccess() 
-            },
+            onClick = { authViewModel.logIn(email, password) },
+            enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {
-            Text("Login", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
+                Text("Login", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Bottom row to navigate to the Sign Up screen
         Row {
             Text("Don't Have An Account? ", color = Color.White, fontSize = 12.sp)
             Text(

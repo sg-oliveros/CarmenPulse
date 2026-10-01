@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Path
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.carmenpulse.AuthViewModel
 import com.example.carmenpulse.LoginScreen
 import com.example.carmenpulse.SignUpScreen
 import com.example.carmenpulse.ui.components.AuthToggleSwitch
@@ -21,7 +23,10 @@ import com.example.carmenpulse.ui.components.CurvedBackground
 import com.example.carmenpulse.ui.theme.BrandGreen
 
 @Composable
-fun AuthScreen(onLoginSuccess: () -> Unit) {
+fun AuthScreen(
+    onLoginSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
+) {
     var isLoginSelected by remember { mutableStateOf(true) }
 
     Box(
@@ -51,7 +56,10 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
             // Switcher Pill Toggle
             AuthToggleSwitch(
                 isLoginSelected = isLoginSelected,
-                onToggle = { isLoginSelected = it }
+                onToggle = { 
+                    isLoginSelected = it
+                    authViewModel.resetState()
+                }
             )
 
             Spacer(modifier = Modifier.height(60.dp))
@@ -64,13 +72,21 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
             ) {
                 if (isLoginSelected) {
                     LoginScreen(
-                        onNavigateToSignUp = { isLoginSelected = false },
-                        onLoginSuccess = onLoginSuccess
+                        onNavigateToSignUp = { 
+                            isLoginSelected = false
+                            authViewModel.resetState()
+                        },
+                        onLoginSuccess = onLoginSuccess,
+                        authViewModel = authViewModel
                     )
                 } else {
                     SignUpScreen(
-                        onNavigateToLogin = { isLoginSelected = true },
-                        onSignUpSuccess = onLoginSuccess
+                        onNavigateToLogin = { 
+                            isLoginSelected = true
+                            authViewModel.resetState()
+                        },
+                        onSignUpSuccess = onLoginSuccess,
+                        authViewModel = authViewModel
                     )
                 }
             }

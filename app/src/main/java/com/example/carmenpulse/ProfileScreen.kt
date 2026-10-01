@@ -20,13 +20,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * ProfileScreen displays the logged-in resident's personal details,
  * verified barangay status, assigned health station, and logout action.
  */
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(
+    onLogout: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
+) {
+
+    val profile by authViewModel.profile.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.fetchProfile()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,7 +68,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         // Resident Name Title
         Text(
-            text = "Carlo Garcia",
+            text = if (profile != null) "${profile!!.first_name} ${profile!!.last_name}" else "Loading...",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -111,21 +122,21 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 ProfileDetailRow(
                     icon = Icons.Default.Email,
                     label = "E-mail Address",
-                    value = "carlo.garcia@example.com"
+                    value = profile?.email ?: "—"
                 )
 
                 // Purok Address Row
                 ProfileDetailRow(
                     icon = Icons.Default.LocationOn,
                     label = "Purok Address",
-                    value = "Purok 3, Barangay Carmen, CDO"
+                    value = "Not yet available"
                 )
 
                 // Resident ID Status Row
                 ProfileDetailRow(
                     icon = Icons.Default.Badge,
                     label = "Resident ID Status",
-                    value = "Active (ID #BC-2026-8832)"
+                    value = "Not yet Available"
                 )
             }
         }

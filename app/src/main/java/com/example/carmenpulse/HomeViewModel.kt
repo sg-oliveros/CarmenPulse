@@ -1,57 +1,75 @@
 package com.example.carmenpulse
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.carmenpulse.data.models.Posts
+import com.example.carmenpulse.data.repository.PostRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 class HomeViewModel : ViewModel() {
-    // This is the private state that only the ViewModel can modify
     private val _advisories = MutableStateFlow<List<Advisory>>(emptyList())
-    
-    // This is the public state that the UI observes
     val advisories: StateFlow<List<Advisory>> = _advisories.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
     init {
-        // When the ViewModel starts, we fetch the data
         fetchAdvisories()
     }
 
-    private fun fetchAdvisories() {
-        // --- BACKEND INTEGRATION POINT ---
-        
-        //MOCK DATA
-        _advisories.value = listOf(
-            Advisory(
-                "1",
-                "Dengue Prevention & Clean-Up Drive",
-                "June 15, 2026",
-                "Immunization",
-                "Free misting and larvicide distribution scheduled across Purok 1 to 4 starting 7:00 AM...",
-                45
-            ),
-            Advisory(
-                "2",
-                "Free Vitamin Distribution for Children",
-                "June 18, 2026",
-                "Dental Mission",
-                "Bring your child's health record card to the Barangay Carmen Health Center to claim supplements.",
-                28
-            )
-        )
+
+    fun fetchAdvisories() {
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                val posts = PostRepository.fetchPosts()
+                _advisories.value = posts.map { it.toAdvisory() }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to load advisories"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
-    // Function to handle interactions (which would also sync with a backend)
     fun toggleInterest(advisoryId: String, isInterested: Boolean) {
         val currentList = _advisories.value.toMutableList()
         val index = currentList.indexOfFirst { it.id == advisoryId }
         
         if (index != -1) {
             val advisory = currentList[index]
-            val newCount = if (isInterested) advisory.initialInterestedCount + 1 else advisory.initialInterestedCount - 1
+            val newCount = if (isInterested) advisory.initialInterestedCount + 1
+            else advisory.initialInterestedCount - 1
             
             currentList[index] = advisory.copy(initialInterestedCount = newCount)
             _advisories.value = currentList
         }
     }
+}
+
+private fun Posts.toAdvisory(): Advisory {
+    val formattedDate = try {
+        OffsetDateTime.parse(created_at)
+            .format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+    } catch (e: Exception) {
+        created_at
+    }
+    return Advisory(
+        id = post_id.toString(),
+        title = title,
+        date = formattedDate,
+        category = category,
+        snippet = content,
+        initialInterestedCount = 0
+    )
 }

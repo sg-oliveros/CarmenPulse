@@ -17,6 +17,7 @@ import com.example.carmenpulse.ui.components.CustomTextField
 @Composable
 fun LoginScreen(
     onNavigateToSignUp: () -> Unit = {},
+    onNavigateToForgotPassword: () -> Unit = {},
     onLoginSuccess: (email: String, name: String) -> Unit = { _, _ -> }
 ) {
     // State variables for form inputs and password visibility toggle
@@ -55,7 +56,7 @@ fun LoginScreen(
             modifier = Modifier
                 .align(Alignment.End)
                 .padding(top = 10.dp)
-                .clickable { /* TODO: Implement forgot password action */ }
+                .clickable { onNavigateToForgotPassword() }
         )
 
         Spacer(modifier = Modifier.height(80.dp))

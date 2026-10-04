@@ -1,5 +1,6 @@
 package com.example.carmenpulse
 
+import java.io.Serializable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -48,7 +49,7 @@ data class UserData(
     val email: String = "",
     val purok: String = "Purok 1",
     val role: String = "Resident"
-)
+) : Serializable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.example.carmenpulse.ui.screens.AuthScreen
 import com.example.carmenpulse.ui.theme.CarmenPulseTheme
@@ -29,8 +30,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var isLoggedIn by remember { mutableStateOf(false) }
-                    var currentUser by remember {
+                    var isLoggedIn by rememberSaveable { mutableStateOf(false) }
+                    var currentUser by rememberSaveable {
                         mutableStateOf(UserData(name = "Resident", email = "resident@example.com", purok = ""))
                     }
 

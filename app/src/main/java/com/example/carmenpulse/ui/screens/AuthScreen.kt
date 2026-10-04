@@ -3,7 +3,11 @@ package com.example.carmenpulse.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,7 +29,7 @@ fun AuthScreen(
     onLoginSuccess: (email: String, name: String) -> Unit = { _, _ -> },
     onSignUpSuccess: (name: String, email: String) -> Unit = { _, _ -> }
 ) {
-    var isLoginSelected by remember { mutableStateOf(true) }
+    var isLoginSelected by rememberSaveable { mutableStateOf(true) }
 
     Box(
         modifier = Modifier

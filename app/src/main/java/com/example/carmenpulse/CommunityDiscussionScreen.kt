@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -225,7 +224,7 @@ fun CommunityDiscussionScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         //text field input and send button for posting new comments
@@ -233,7 +232,7 @@ fun CommunityDiscussionScreen(
             Surface(
                 tonalElevation = 8.dp,
                 shadowElevation = 8.dp,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -258,8 +257,8 @@ fun CommunityDiscussionScreen(
                         shape = RoundedCornerShape(24.dp),
                         maxLines = 3,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
                         )
                     )
 
@@ -450,8 +449,8 @@ fun CommunityDiscussionScreen(
 fun CommentBubble(comment: ForumComment) {
     val isBHW = comment.isOfficialStaff
 
-    //BHW staff cards get a tinted container; residents have a white card
-    val bubbleColor = if (isBHW) MaterialTheme.colorScheme.secondaryContainer else Color.White
+    //BHW staff cards get a tinted container; residents have a surface card
+    val bubbleColor = if (isBHW) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
     val border = if (isBHW) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
     Card(

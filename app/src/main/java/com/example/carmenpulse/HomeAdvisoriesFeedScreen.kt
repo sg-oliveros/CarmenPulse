@@ -21,8 +21,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.graphics.Color
 
+//this holds all the text and info needed for one post.
+//data structure for each health advisory
 data class Advisory(
     val id: String,
     val title: String,
@@ -38,10 +39,11 @@ fun HomeAdvisoriesFeedScreen(
     viewModel: HomeViewModel = viewModel(),
     onCommentClick: (Advisory) -> Unit = {}
 ) {
-    // Observe the list from the ViewModel
+    // listens to the viewModel so the screen updates whenever data changes
     val advisories by viewModel.advisories.collectAsState()
 
     Scaffold(
+        //the top bar of the app(shows the logo, app name, and notification icon)
         topBar = {
             TopAppBar(
                 title = {
@@ -60,6 +62,7 @@ fun HomeAdvisoriesFeedScreen(
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
+                        //app name and location subtitle
                         Column {
                             Text(
                                 text = "CarmenPulse",
@@ -79,6 +82,7 @@ fun HomeAdvisoriesFeedScreen(
             )
         }
     ) { innerPadding ->
+        //a scrollable list that only loads items visible on the screen (saves memory)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -86,7 +90,7 @@ fun HomeAdvisoriesFeedScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Welcome Banner Card
+            // welcoming greeting card at the top of the feed
             item {
                 Spacer(modifier = Modifier.height(4.dp))
                 Card(
@@ -113,6 +117,7 @@ fun HomeAdvisoriesFeedScreen(
                 }
             }
 
+            //section title text
             item {
                 Text(
                     text = "Official Health Advisories",
@@ -122,11 +127,13 @@ fun HomeAdvisoriesFeedScreen(
                 )
             }
 
+            //loops through the list of advisories and creates a card for each one
             items(advisories) { advisory ->
                 AdvisoryCard(
                     advisory = advisory,
                     onCommentClick = { onCommentClick(advisory) },
                     onInterestToggle = { isInterested ->
+                        //this will tell the viewmodel to update when the user clicks interested
                         viewModel.toggleInterest(advisory.id, isInterested)
                     }
                 )
@@ -135,21 +142,22 @@ fun HomeAdvisoriesFeedScreen(
     }
 }
 
+//this builds the individual card design for every advisory item
 @Composable
 fun AdvisoryCard(
     advisory: Advisory,
     onCommentClick: () -> Unit,
     onInterestToggle: (Boolean) -> Unit
 ) {
+    //this will remember if the current user clicked the "interested" button or not
     var isInterested by remember { mutableStateOf(false) }
-    // interestedCount now comes from the advisory object passed by the ViewModel
     val interestedCount = advisory.initialInterestedCount
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
@@ -181,12 +189,14 @@ fun AdvisoryCard(
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
+            //the title of the advisory
             Text(
                 text = advisory.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(6.dp))
+            //short preview description
             Text(
                 text = advisory.snippet,
                 style = MaterialTheme.typography.bodyMedium,
@@ -203,7 +213,7 @@ fun AdvisoryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                // Interested / Going Action Button
+                // change color of button when clicked
                 FilledTonalButton(
                     onClick = {
                         isInterested = !isInterested

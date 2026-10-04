@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+//the viewmodel holds and manages the data for the screen so it won't get lost when the screen rotates
 class HomeViewModel : ViewModel() {
-    // This is the private state that only the ViewModel can modify
     private val _advisories = MutableStateFlow<List<Advisory>>(emptyList())
     
     // This is the public state that the UI observes

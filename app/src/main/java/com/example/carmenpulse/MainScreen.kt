@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 
 @Composable
 fun MainScreen(
@@ -21,7 +20,7 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },

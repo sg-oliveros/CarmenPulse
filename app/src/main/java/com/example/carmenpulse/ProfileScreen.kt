@@ -2,12 +2,15 @@ package com.example.carmenpulse
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -24,9 +27,16 @@ import androidx.compose.ui.unit.dp
 /**
  * ProfileScreen displays the logged-in resident's personal details,
  * verified barangay status, assigned health station, and logout action.
+ * Allows residents to view and update their Purok Address on demand.
  */
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(
+    currentUser: UserData = UserData(name = "Resident", email = "resident@example.com", purok = ""),
+    onLogout: () -> Unit = {}
+) {
+    var addressInput by remember(currentUser.purok) { mutableStateOf(currentUser.purok) }
+    var isEditingAddress by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -37,7 +47,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- Profile Avatar Header ---
-        // Displays a circular avatar container with a user profile icon
         Box(
             modifier = Modifier
                 .size(90.dp)
@@ -57,7 +66,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         // Resident Name Title
         Text(
-            text = "Carlo Garcia",
+            text = currentUser.name.ifBlank { "Resident" },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -85,7 +94,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- Personal Information Card ---
-        // Houses user contact, address, and ID verification details
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -111,15 +119,64 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 ProfileDetailRow(
                     icon = Icons.Default.Email,
                     label = "E-mail Address",
-                    value = "carlo.garcia@example.com"
+                    value = currentUser.email.ifBlank { "resident@example.com" }
                 )
 
-                // Purok Address Row
-                ProfileDetailRow(
-                    icon = Icons.Default.LocationOn,
-                    label = "Purok Address",
-                    value = "Purok 3, Barangay Carmen, CDO"
-                )
+                // Editable Purok Address Section
+                if (isEditingAddress) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = addressInput,
+                            onValueChange = { addressInput = it },
+                            label = { Text("Purok Address") },
+                            placeholder = { Text("e.g. Purok 3, Barangay Carmen, CDO") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { isEditingAddress = false },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Save Address",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isEditingAddress = true },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            ProfileDetailRow(
+                                icon = Icons.Default.LocationOn,
+                                label = "Purok Address",
+                                value = if (addressInput.isNotBlank()) addressInput else "Not specified (Tap to add)",
+                                isMuted = addressInput.isBlank()
+                            )
+                        }
+                        IconButton(onClick = { isEditingAddress = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Address",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
 
                 // Resident ID Status Row
                 ProfileDetailRow(
@@ -133,7 +190,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // --- Assigned Health Station Card ---
-        // Shows the health center room and BHW team assigned to the resident
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -161,7 +217,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
         Spacer(modifier = Modifier.weight(1f))
 
         // --- Logout Action Button ---
-        // Triggers the onLogout callback to return to the authentication flow
         OutlinedButton(
             onClick = onLogout,
             modifier = Modifier
@@ -179,7 +234,13 @@ fun ProfileScreen(onLogout: () -> Unit) {
 }
 
 @Composable
-fun ProfileDetailRow(icon: ImageVector, label: String, value: String, tint: Color = MaterialTheme.colorScheme.primary) {
+fun ProfileDetailRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    isMuted: Boolean = false
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -212,8 +273,8 @@ fun ProfileDetailRow(icon: ImageVector, label: String, value: String, tint: Colo
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                fontWeight = if (isMuted) FontWeight.Normal else FontWeight.Medium,
+                color = if (isMuted) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface
             )
         }
     }

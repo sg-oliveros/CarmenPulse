@@ -13,12 +13,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextDecoration
 import com.example.carmenpulse.ui.components.CustomTextField
-import com.example.carmenpulse.ui.theme.DarkGreen
 
 @Composable
 fun LoginScreen(
-    onNavigateToSignUp: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onNavigateToSignUp: () -> Unit = {},
+    onLoginSuccess: (email: String, name: String) -> Unit = { _, _ -> }
 ) {
     // State variables for form inputs and password visibility toggle
     var email by remember { mutableStateOf("") }
@@ -65,7 +64,12 @@ fun LoginScreen(
         Button(
             onClick = { 
                 // Handle authentication login logic and navigate to homepage
-                onLoginSuccess() 
+                val userEmail = email.trim().ifBlank { "resident@example.com" }
+                val userName = userEmail.substringBefore("@").replaceFirstChar { it.uppercase() }
+                onLoginSuccess(
+                    userEmail,
+                    if (userName.isNotBlank()) userName else "Resident"
+                )
             },
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

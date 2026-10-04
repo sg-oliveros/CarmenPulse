@@ -36,6 +36,7 @@ data class Advisory(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeAdvisoriesFeedScreen(
+    userName: String = "Resident",
     viewModel: HomeViewModel = viewModel(),
     onCommentClick: (Advisory) -> Unit = {}
 ) {
@@ -102,7 +103,7 @@ fun HomeAdvisoriesFeedScreen(
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            text = "Mabuhay, Resident! 👋", // this should reflect the name registered
+                            text = "Mabuhay, ${userName.ifBlank { "Resident" }}! 👋",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer

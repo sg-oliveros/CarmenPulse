@@ -21,7 +21,10 @@ import com.example.carmenpulse.ui.components.CurvedBackground
 import com.example.carmenpulse.ui.theme.BrandGreen
 
 @Composable
-fun AuthScreen(onLoginSuccess: () -> Unit) {
+fun AuthScreen(
+    onLoginSuccess: (email: String, name: String) -> Unit = { _, _ -> },
+    onSignUpSuccess: (name: String, email: String) -> Unit = { _, _ -> }
+) {
     var isLoginSelected by remember { mutableStateOf(true) }
 
     Box(
@@ -70,7 +73,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                 } else {
                     SignUpScreen(
                         onNavigateToLogin = { isLoginSelected = true },
-                        onSignUpSuccess = onLoginSuccess
+                        onSignUpSuccess = onSignUpSuccess
                     )
                 }
             }

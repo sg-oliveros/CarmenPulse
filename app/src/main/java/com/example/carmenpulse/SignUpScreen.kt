@@ -74,11 +74,14 @@ fun SignUpScreen(
                 ) 
             },
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {
-            Text("Sign Up", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Sign Up", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))

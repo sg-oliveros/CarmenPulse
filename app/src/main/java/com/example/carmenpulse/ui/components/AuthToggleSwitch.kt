@@ -13,20 +13,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import com.example.carmenpulse.ui.theme.BrandGreen
 
 @Composable
 fun AuthToggleSwitch(
     isLoginSelected: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val activeBg = MaterialTheme.colorScheme.primary
+    val activeText = MaterialTheme.colorScheme.onPrimary
+    val inactiveText = MaterialTheme.colorScheme.onSurfaceVariant
+
     Surface(
         modifier = Modifier
             .width(280.dp)
             .height(56.dp),
         shape = RoundedCornerShape(28.dp),
-        color = Color(0xFFF5F5F5)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -38,13 +42,13 @@ fun AuthToggleSwitch(
                     .fillMaxHeight()
                     .padding(4.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (isLoginSelected) BrandGreen else Color.Transparent)
+                    .background(if (isLoginSelected) activeBg else Color.Transparent)
                     .clickable { onToggle(true) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Login",
-                    color = if (isLoginSelected) Color.White else Color.LightGray,
+                    color = if (isLoginSelected) activeText else inactiveText,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -56,13 +60,13 @@ fun AuthToggleSwitch(
                     .fillMaxHeight()
                     .padding(4.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (!isLoginSelected) BrandGreen else Color.Transparent)
+                    .background(if (!isLoginSelected) activeBg else Color.Transparent)
                     .clickable { onToggle(false) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Sign Up",
-                    color = if (!isLoginSelected) Color.White else Color.LightGray,
+                    color = if (!isLoginSelected) activeText else inactiveText,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)

@@ -17,6 +17,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * CustomTextField provides a styled input field with rounded corners, optional password visibility toggle,
+ * and Material Theme colors for theme adaptive rendering.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomTextField(

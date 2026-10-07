@@ -1,6 +1,9 @@
 package com.example.carmenpulse
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -12,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainScreen(
     currentUser: UserData = UserData(name = "Resident", email = "resident@example.com"),
@@ -19,35 +23,41 @@ fun MainScreen(
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
 
+    // Detects whether the software keyboard (IME) is currently open on screen
+    val isImeVisible = WindowInsets.isImeVisible
+
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.MedicalServices, contentDescription = "Services") },
-                    label = { Text("Services") },
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Forum, contentDescription = "Forum") },
-                    label = { Text("Forum") },
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.AccountCircle, contentDescription = "Profile") },
-                    label = { Text("Profile") },
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 }
-                )
+            // Hides the bottom navigation bar when typing/keyboard is visible to prevent overlap
+            if (!isImeVisible) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.MedicalServices, contentDescription = "Services") },
+                        label = { Text("Services") },
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Forum, contentDescription = "Forum") },
+                        label = { Text("Forum") },
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.AccountCircle, contentDescription = "Profile") },
+                        label = { Text("Profile") },
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 }
+                    )
+                }
             }
         }
     ) { innerPadding ->

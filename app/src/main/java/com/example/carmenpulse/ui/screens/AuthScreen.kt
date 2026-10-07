@@ -25,20 +25,26 @@ import com.example.carmenpulse.ui.components.AuthToggleSwitch
 import com.example.carmenpulse.ui.components.CurvedBackground
 import com.example.carmenpulse.ui.theme.BrandGreen
 
+/**
+ * AuthScreen provides the login and registration container with responsive dark theme support.
+ */
 @Composable
 fun AuthScreen(
     onLoginSuccess: (email: String, name: String) -> Unit = { _, _ -> },
     onSignUpSuccess: (name: String, email: String) -> Unit = { _, _ -> }
 ) {
     var isLoginSelected by rememberSaveable { mutableStateOf(true) }
+    
+    // Checks if the system is currently in Dark Mode
     val isDark = isSystemInDarkTheme()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // Adapts background color dynamically to current theme (light vs dark)
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Dynamic Curved Background Layer
+        // Dynamic Curved Background Layer - adapts container color in dark mode
         CurvedBackground(
             modifier = Modifier
                 .fillMaxSize()
@@ -53,7 +59,7 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(90.dp))
 
-            // App Title Logo with Heartbeat
+            // App Title Logo with Heartbeat (dynamically tinted via primary theme color)
             LogoWithHeartbeat()
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -90,6 +96,7 @@ fun AuthScreen(
 
 @Composable
 fun LogoWithHeartbeat() {
+    // Tint logo text and line according to theme primary color
     val logoColor = MaterialTheme.colorScheme.primary
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -100,7 +107,7 @@ fun LogoWithHeartbeat() {
             color = logoColor
         )
         Spacer(modifier = Modifier.width(8.dp))
-        //for the logo and curve design
+        // Logo pulse heartbeat graphic
         Canvas(modifier = Modifier.size(40.dp, 30.dp)) {
             val path = Path().apply {
                 val w = size.width

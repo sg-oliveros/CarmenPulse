@@ -1,12 +1,14 @@
 package com.example.carmenpulse
 
 import java.io.Serializable
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -191,6 +193,9 @@ fun CommunityDiscussionScreen(
     //this grabs the exact thread object corresponding to the currently selected tab
     val activeThread = threadsMap[activeThreadId] ?: threadsMap["2"]!!
 
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold( //header section with title and back nav button
         topBar = {
             TopAppBar(
@@ -228,21 +233,24 @@ fun CommunityDiscussionScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
-        //text field input and send button for posting new comments
+        // Text field input and send button for posting new comments
         bottomBar = {
             Surface(
                 tonalElevation = 8.dp,
                 shadowElevation = 8.dp,
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding() // Pushes comment input bar up above soft keyboard when visible
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding() // Adds padding for bottom gesture/navigation bars
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    //text input field for typing quations
+                    // Text input field for typing questions or comments
                     OutlinedTextField(
                         value = commentInput,
                         onValueChange = { commentInput = it },
@@ -263,14 +271,13 @@ fun CommunityDiscussionScreen(
                         )
                     )
 
-                    //send button action
+                    // Send comment button action
                     IconButton(
                         onClick = {
                             if (commentInput.isNotBlank()) {
                                 val authorName = currentUser?.name ?: "You (Resident)"
-                                val residentPurok = currentUser?.purok ?: "Purok 1"
 
-                                //adds the newly typed comment directly into the active thread
+                                // Adds the newly typed comment directly into the active thread
                                 activeThread.comments.add(
                                     ForumComment(
                                         id = System.currentTimeMillis().toString(),
@@ -281,7 +288,12 @@ fun CommunityDiscussionScreen(
                                         timestamp = "Just now"
                                     )
                                 )
-                                commentInput = "" //clears out the input field after it is sent
+                                commentInput = "" // Clears input field after sending
+
+                                // Auto-scrolls discussion list to show newly posted comment
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(activeThread.comments.size + 2)
+                                }
                             }
                         },
                         modifier = Modifier
@@ -344,6 +356,7 @@ fun CommunityDiscussionScreen(
 
             //this displays announcement summary card and all comment bubbles
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),

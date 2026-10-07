@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,14 +15,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 
+/**
+ * AuthToggleSwitch renders a pill switcher to toggle between Login and Sign Up views,
+ * using Material Theme colors for dark and light mode compatibility.
+ */
 @Composable
 fun AuthToggleSwitch(
     isLoginSelected: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    // Dynamic theme colors for active and inactive toggle states
     val activeBg = MaterialTheme.colorScheme.primary
     val activeText = MaterialTheme.colorScheme.onPrimary
     val inactiveText = MaterialTheme.colorScheme.onSurfaceVariant

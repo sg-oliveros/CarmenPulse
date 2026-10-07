@@ -76,10 +76,10 @@ class AuthViewModel : ViewModel() {
                             rawMessage.contains("User not found", ignoreCase = true) ||
                             rawMessage.contains("Email not found", ignoreCase = true) ||
                             rawMessage.contains("status: 400", ignoreCase = true) ->
-                        "Please enter a valid Gmail address."
+                        "Wrong Gmail or Password."
 
                     rawMessage.contains("invalid email", ignoreCase = true) ->
-                        "Incorrect Gmail or Password."
+                        "Please enter a valid Gmail address."
 
                     else ->
                         "Login failed. Please check your credentials and try again."

@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.net.ConnectException
+import java.net.UnknownHostException
 
 sealed interface AuthState {
     object Idle : AuthState
@@ -32,17 +34,24 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Success
                 loadProfile()
             } catch (e: Exception) {
-                val rawMessage = e.localizedMessage ?: ""
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
                 val errorMessage = when {
-                    rawMessage.contains("already registered", ignoreCase = true) || 
-                    rawMessage.contains("already exists", ignoreCase = true) -> 
-                        "This email is already registered."
-                    rawMessage.contains("password", ignoreCase = true) && (rawMessage.contains("short", ignoreCase = true) || rawMessage.contains("characters", ignoreCase = true)) -> 
+
+                    isNetworkError(rawMessage, e) ->
+                        "No internet connection."
+
+                    rawMessage.contains("already registered", ignoreCase = true) ||
+                            rawMessage.contains("already exists", ignoreCase = true) ->
+                        "This Gmail address is already exist."
+
+                    rawMessage.contains("email", ignoreCase = true) && rawMessage.contains("invalid", ignoreCase = true) ->
+                        "Please enter a valid Gmail address."
+
+                    rawMessage.contains("password", ignoreCase = true) && (rawMessage.contains("short", ignoreCase = true) || rawMessage.contains("characters", ignoreCase = true)) ->
                         "Password is too weak or short."
-                    rawMessage.contains("email", ignoreCase = true) && rawMessage.contains("invalid", ignoreCase = true) -> 
-                        "Please enter a valid email address."
-                    else -> 
-                        "Sign up failed. Please check your details."
+
+                    else ->
+                        "Sign up failed. Please check your details and try again."
                 }
                 _authState.value = AuthState.Error(errorMessage)
             }
@@ -57,12 +66,23 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Success
                 loadProfile()
             } catch (e: Exception) {
-                val errorMessage = if (e.localizedMessage?.contains("Invalid login credentials", ignoreCase = true) == true ||
-                    e.localizedMessage?.contains("invalid", ignoreCase = true) == true ||
-                    e.localizedMessage?.contains("status: 400", ignoreCase = true) == true) {
-                    "Invalid email or password."
-                } else {
-                    e.localizedMessage ?: "Login failed. Please check your credentials."
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+
+                    isNetworkError(rawMessage, e) ->
+                        "No internet connection."
+
+                    rawMessage.contains("Invalid login credentials", ignoreCase = true) ||
+                            rawMessage.contains("User not found", ignoreCase = true) ||
+                            rawMessage.contains("Email not found", ignoreCase = true) ||
+                            rawMessage.contains("status: 400", ignoreCase = true) ->
+                        "Please enter a valid Gmail address."
+
+                    rawMessage.contains("invalid email", ignoreCase = true) ->
+                        "Please enter a valid Gmail address."
+
+                    else ->
+                        "Login failed. Please check your credentials and try again."
                 }
                 _authState.value = AuthState.Error(errorMessage)
             }
@@ -94,4 +114,21 @@ class AuthViewModel : ViewModel() {
     }
 
     fun fetchProfile() = loadProfile()
+
+    private fun isNetworkError(message: String, exception: Exception): Boolean {
+        val networkKeywords = listOf(
+            "Unable to resolve host",
+            "Failed to connect",
+            "UnknownHostException",
+            "ConnectException",
+            "SocketException",
+            "SocketTimeoutException",
+            "Network",
+            "Offline",
+            "timeout"
+        )
+        return networkKeywords.any { message.contains(it, ignoreCase = true) } ||
+                exception is UnknownHostException ||
+                exception is ConnectException
+    }
 }

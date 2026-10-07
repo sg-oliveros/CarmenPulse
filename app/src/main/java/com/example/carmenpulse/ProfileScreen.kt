@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * ProfileScreen displays the logged-in resident's personal details,
@@ -31,12 +32,16 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun ProfileScreen(
-    currentUser: UserData = UserData(name = "Resident", email = "resident@example.com", purok = ""),
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    var addressInput by remember(currentUser.purok) { mutableStateOf(currentUser.purok) }
-    var isEditingAddress by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    val profile by authViewModel.profile.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.fetchProfile()
+    }
 
     Column(
         modifier = Modifier
@@ -67,7 +72,7 @@ fun ProfileScreen(
 
         // Resident Name Title
         Text(
-            text = currentUser.name.ifBlank { "Resident" },
+            text = if (profile != null) "${profile!!.first_name} ${profile!!.last_name}" else "Loading...",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -120,70 +125,21 @@ fun ProfileScreen(
                 ProfileDetailRow(
                     icon = Icons.Default.Email,
                     label = "E-mail Address",
-                    value = currentUser.email.ifBlank { "resident@example.com" }
+                    value = profile?.email ?: "—"
                 )
 
-                // Editable Purok Address Section
-                if (isEditingAddress) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = addressInput,
-                            onValueChange = { addressInput = it },
-                            label = { Text("Purok Address") },
-                            placeholder = { Text("e.g. Purok 3, Barangay Carmen, CDO") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { isEditingAddress = false },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Done,
-                                contentDescription = "Save Address",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isEditingAddress = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            ProfileDetailRow(
-                                icon = Icons.Default.LocationOn,
-                                label = "Purok Address",
-                                value = if (addressInput.isNotBlank()) addressInput else "Not specified (Tap to add)",
-                                isMuted = addressInput.isBlank()
-                            )
-                        }
-                        IconButton(onClick = { isEditingAddress = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Address",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
+                // Purok Address Row
+                ProfileDetailRow(
+                    icon = Icons.Default.LocationOn,
+                    label = "Purok Address",
+                    value = "Not yet available"
+                )
 
                 // Resident ID Status Row
                 ProfileDetailRow(
                     icon = Icons.Default.Badge,
                     label = "Resident ID Status",
-                    value = "Active (ID #BC-2026-8832)"
+                    value = "Not yet Available"
                 )
             }
         }

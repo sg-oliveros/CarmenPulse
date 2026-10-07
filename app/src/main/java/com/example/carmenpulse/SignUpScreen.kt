@@ -12,36 +12,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carmenpulse.ui.components.CustomTextField
 
 @Composable
 fun SignUpScreen(
-    onNavigateToLogin: () -> Unit = {},
-    onSignUpSuccess: (name: String, email: String) -> Unit = { _, _ -> }
+    onNavigateToLogin: () -> Unit,
+    onSignUpSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    // State variables for sign-up form inputs and password visibility toggle
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    val authState by authViewModel.authState.collectAsState()
+    val isLoading = authState is AuthState.Loading
+
+    // Only navigate once Supabase actually confirms success,
+    // then reset so this leftover state can't leak into another screen.
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onSignUpSuccess()
+            authViewModel.resetState()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top spacing to keep the form away from the green background curve
         Spacer(modifier = Modifier.height(75.dp))
 
-        // Full Name input field
         CustomTextField(value = fullName, onValueChange = { fullName = it }, label = "Full Name")
         Spacer(modifier = Modifier.height(12.dp))
 
-        // E-mail input field
         CustomTextField(value = email, onValueChange = { email = it }, label = "E-mail")
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Password input field
         CustomTextField(
             value = password,
             onValueChange = { password = it },
@@ -52,7 +62,6 @@ fun SignUpScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Confirm Password input field
         CustomTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
@@ -62,28 +71,55 @@ fun SignUpScreen(
             onVisibilityToggle = { passwordVisible = !passwordVisible }
         )
 
+        val errorMessage = validationError ?: (authState as? AuthState.Error)?.message
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 12.dp)
+            )
+        }
+
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Sign Up submit button
         Button(
-            onClick = { 
-                // Handle sign-up registration logic and navigate to homepage
-                onSignUpSuccess(
-                    fullName.trim().ifBlank { "Resident" },
-                    email.trim().ifBlank { "resident@example.com" }
-                ) 
+            onClick = {
+                validationError = null
+                when {
+                    fullName.isBlank() || email.isBlank() || password.isBlank() ->
+                        validationError = "Please fill out all fields."
+                    password != confirmPassword ->
+                        validationError = "Passwords do not match."
+                    else -> {
+                        val nameParts = fullName.trim().split(" ", limit = 2)
+                        val firstName = nameParts.getOrElse(0) { "" }
+                        val lastName = nameParts.getOrElse(1) { "" }
+                        authViewModel.signUp(
+                            email = email,
+                            password = password,
+                            firstName = firstName,
+                            lastName = lastName,
+                            contactNumber = ""
+                        )
+                    }
+                }
             },
+            enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {
-            Text("Sign Up", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
+                Text("Sign Up", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Bottom row to navigate back to the Login screen
         Row {
             Text("Already Have An Account? ", color = Color.White, fontSize = 12.sp)
             Text(

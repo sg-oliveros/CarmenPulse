@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.carmenpulse.data.models.MedicalServices
 
 data class MedicalServiceItem(
     val id: String,
@@ -42,12 +44,55 @@ data class MedicalServiceItem(
     val contactInfo: String = "Barangay Carmen Health Center Desk: (088) 858-1234",
 )
 
+private fun MedicalServices.toUiModel(): MedicalServiceItem {
+    val parsedRequirements = requirements
+        ?.split("\n")
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?: emptyList()
+
+    val categoryFromStatus = when {
+        status.isNullOrBlank() -> "Medical Service"
+        else -> status
+    }
+
+    return MedicalServiceItem(
+        id = service_id.toString(),
+        title = service_name,
+        category = categoryFromStatus,
+        icon = "🏥",
+        roomNumber = location_venue,
+        operatingHours = "Please check with the health center.",
+        scheduleDays = schedule_date,
+        venue = location_venue,
+        requirements = parsedRequirements,
+        description = description ?: "No description available.",
+        procedureSteps = emptyList()
+    )
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MedicalServicesScreen() {
-    var selectedService by remember { mutableStateOf<MedicalServiceItem?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("All") }
+fun MedicalServicesScreen(viewModel: MedicalServicesViewModel = viewModel())
+{
+
+    val services by viewModel.services.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    var selectedCategory by remember {
+        mutableStateOf("All")
+    }
+
+    var searchQuery by remember {
+        mutableStateOf("")
+    }
+
+    var selectedService by remember {
+        mutableStateOf<MedicalServiceItem?>(null)
+    }
+
 
     val categories = listOf(
         "All",
@@ -59,198 +104,50 @@ fun MedicalServicesScreen() {
         "Disease Screening"
     )
 
-    val carmenMedicalServicesList = remember {
-        listOf(
-            MedicalServiceItem(
-                id = "1",
-                title = "Dental Care & Oral Hygiene",
-                category = "Dental Care",
-                icon = "🦷",
-                roomNumber = "Room 103 - Dental Clinic",
-                scheduleDays = "Mon, Wed, Fri",
-                operatingHours = "8:00 AM - 4:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Valid Government or Barangay ID",
-                    "Barangay Carmen Resident Certificate / Pass",
-                    "Member Data Record (MDR) or PhilHealth ID (if available)"
-                ),
-                description = "Offers permanent dental services including tooth extraction, routine dental checkups, cleaning, oral hygiene consultation, and preventive fluoride treatments for children.",
-                procedureSteps = listOf(
-                    "Proceed to BHW Triage booth outside the main entrance for queue number.",
-                    "Present valid ID and resident clearance at registration window.",
-                    "Proceed to Room 103 (Dental Clinic) and await dental assistant call."
-                )
-            ),
-            MedicalServiceItem(
-                id = "2",
-                title = "General Consultation & Checkup",
-                category = "Primary Care",
-                icon = "🩺",
-                roomNumber = "Room 101 - Main Physician Clinic",
-                scheduleDays = "Every Monday to Friday",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Member Data Record (MDR) or Valid Government ID",
-                    "Previous Medical Records or Maintenance Prescription (if applicable)",
-                    "Barangay Carmen Resident ID or Clearance"
-                ),
-                description = "Comprehensive health consultations with municipal physicians, routine physical examinations, diagnosis, prescription issuance, and specialist referrals.",
-                procedureSteps = listOf(
-                    "Complete triage check at main health center entrance with BHW.",
-                    "Present MDR card or ID at Room 101 registration counter.",
-                    "Get vital signs checked (blood pressure, weight, temperature) by health worker.",
-                    "Consult physician in Room 101 for diagnosis and prescription."
-                )
-            ),
-            MedicalServiceItem(
-                id = "3",
-                title = "Infant & Child Immunization",
-                category = "Pediatrics",
-                icon = "💉",
-                roomNumber = "Room 104 - Pediatric & Vaccination Desk",
-                scheduleDays = "Every Wednesday",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Child's Immunization Book / Pink Health Card",
-                    "Mother or Guardian's Valid ID",
-                    "Barangay Resident Clearance"
-                ),
-                description = "Permanent routine vaccination program for infants and young children (BCG, Hepatitis B, Pentavalent, OPV/IPV, MMR), along with free Vitamin A supplementation.",
-                procedureSteps = listOf(
-                    "Register infant's immunization card at Room 104 reception window.",
-                    "BHW checks child's weight, height, and vaccine schedule history.",
-                    "Nurse administers required vaccine and logs next scheduled session date."
-                )
-            ),
-            MedicalServiceItem(
-                id = "4",
-                title = "Prenatal & Postnatal Care",
-                category = "Maternal Health",
-                icon = "🤰",
-                roomNumber = "Room 102 - Maternal & Midwife Station",
-                scheduleDays = "Every Monday & Tuesday",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Mother & Child Health Book (Pink Book)",
-                    "Member Data Record (MDR) / PhilHealth Details",
-                    "Valid Government ID"
-                ),
-                description = "Dedicated prenatal checkups, fetal growth monitoring, blood pressure screening, maternal tetanus vaccination, and postnatal care for mothers.",
-                procedureSteps = listOf(
-                    "Queue at Maternal Care Desk (Room 102) intake desk.",
-                    "Initial blood pressure check and weight recording by BHW.",
-                    "Consultation with midwife or physician for fetal monitoring."
-                )
-            ),
-            MedicalServiceItem(
-                id = "5",
-                title = "MCP Birthing Facility (Normal Deliveries)",
-                category = "Maternal Health",
-                icon = "👶",
-                roomNumber = "MCP Birthing Wing - Right Wing",
-                scheduleDays = "Daily (24/7 Operations)",
-                operatingHours = "24 Hours / 7 Days a Week",
-                venue = "MCP Birthing Facility (Right side of Health Center)",
-                requirements = listOf(
-                    "Complete Prenatal Pink Book (minimum 4 checkups)",
-                    "Member Data Record (MDR) / PhilHealth Details",
-                    "Mother & Father Valid Government IDs",
-                    "Prepared Newborn Delivery Kit & Baby Clothes"
-                ),
-                description = "Round-the-clock Maternity Care Package (MCP) birthing facility providing safe, professional normal spontaneous deliveries for resident mothers.",
-                procedureSteps = listOf(
-                    "Direct admission at 24/7 MCP Birthing Wing intake desk.",
-                    "Duty midwife evaluation and emergency obstetric triage.",
-                    "Admission to birthing suite and continuous labor monitoring."
-                )
-            ),
-            MedicalServiceItem(
-                id = "6",
-                title = "Family Planning & Reproductive Health",
-                category = "Reproductive Health",
-                icon = "👨‍👩‍👧",
-                roomNumber = "Room 105 - Family Planning Office",
-                scheduleDays = "Every Thursday",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Valid ID",
-                    "Family Planning Client Passbook (for returning patients)"
-                ),
-                description = "Professional counseling and distribution of family planning methods including pills, DMPA injectables, sub-dermal implants, IUDs, and condoms.",
-                procedureSteps = listOf(
-                    "Private intake and registration in Room 105.",
-                    "One-on-one counseling with trained family planning counselor.",
-                    "Administration or supply distribution of selected method."
-                )
-            ),
-            MedicalServiceItem(
-                id = "7",
-                title = "Senior Citizen NCD Medicine Distribution",
-                category = "Maintenance Medicine",
-                icon = "💊",
-                roomNumber = "Room 106 - Pharmacy & Distribution Unit",
-                scheduleDays = "Every 4th Thursday of the Month",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Senior Citizen ID Card",
-                    "Updated Doctor's Prescription for maintenance drugs",
-                    "Senior Health Passbook / Booklet"
-                ),
-                description = "Monthly supply distribution of maintenance medications for Senior Citizens diagnosed with Hypertension, Diabetes, or High Cholesterol.",
-                procedureSteps = listOf(
-                    "Present Senior Citizen ID and prescription at Room 106 window.",
-                    "Pharmacist verifies doctor's prescription against resident record.",
-                    "Sign logbook and receive monthly medicine allocation."
-                )
-            ),
-            MedicalServiceItem(
-                id = "8",
-                title = "Non-Senior NCD Maintenance Medicine",
-                category = "Maintenance Medicine",
-                icon = "🏥",
-                roomNumber = "Room 106 - Pharmacy & Distribution Unit",
-                scheduleDays = "Every 5th Thursday of the Month",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Valid Government ID",
-                    "Official Physician Prescription",
-                    "Barangay Health Center Index Card"
-                ),
-                description = "Monthly distribution of essential chronic disease maintenance medications for registered non-senior adult patients.",
-                procedureSteps = listOf(
-                    "Present patient index card and prescription at Room 106.",
-                    "Medication counseling with health center pharmacist.",
-                    "Receive assigned medication package."
-                )
-            ),
-            MedicalServiceItem(
-                id = "9",
-                title = "National Tuberculosis Program (NTP) & PICT Screening",
-                category = "Disease Screening",
-                icon = "🔬",
-                roomNumber = "Room 107 - Screening Laboratory",
-                scheduleDays = "Every Thursday",
-                operatingHours = "8:00 AM - 5:00 PM",
-                venue = "Barangay Carmen Health Center",
-                requirements = listOf(
-                    "Doctor Referral or Sputum Specimen",
-                    "Valid Government ID"
-                ),
-                description = "Free GeneXpert sputum testing for TB detection, DOTS treatment program management, and voluntary Provider-Initiated Counseling & Testing (PICT).",
-                procedureSteps = listOf(
-                    "Submit referral or report to Room 107 intake window.",
-                    "Confidential screening intake and specimen collection.",
-                    "Results release and counseling orientation."
-                )
-            )
-        )
+    val medicalServiceItems = remember(services) {
+        services.map {
+            it.toUiModel()
+        }
+    }
+
+    val filteredServices = remember(
+        medicalServiceItems,
+        searchQuery,
+        selectedCategory
+    ) {
+
+        medicalServiceItems.filter { service ->
+
+            val matchesCategory =
+                selectedCategory == "All" ||
+                        service.category.equals(
+                            selectedCategory,
+                            ignoreCase = true
+                        )
+
+            val matchesSearch =
+                searchQuery.isBlank() ||
+                        service.title.contains(
+                            searchQuery,
+                            ignoreCase = true
+                        ) ||
+                        service.description.contains(
+                            searchQuery,
+                            ignoreCase = true
+                        ) ||
+                        service.roomNumber.contains(
+                            searchQuery,
+                            ignoreCase = true
+                        ) ||
+                        service.requirements.any {
+                            it.contains(
+                                searchQuery,
+                                ignoreCase = true
+                            )
+                        }
+
+            matchesCategory && matchesSearch
+        }
     }
 
     // Handle back gesture/button when viewing details
@@ -258,16 +155,6 @@ fun MedicalServicesScreen() {
         BackHandler {
             selectedService = null
         }
-    }
-
-    val filteredServices = carmenMedicalServicesList.filter { service ->
-        val matchesCategory = (selectedCategory == "All") || service.category.equals(selectedCategory, ignoreCase = true)
-        val matchesSearch = searchQuery.isBlank() ||
-                service.title.contains(searchQuery, ignoreCase = true) ||
-                service.description.contains(searchQuery, ignoreCase = true) ||
-                service.roomNumber.contains(searchQuery, ignoreCase = true) ||
-                service.requirements.any { it.contains(searchQuery, ignoreCase = true) }
-        matchesCategory && matchesSearch
     }
 
     Scaffold(
@@ -337,25 +224,110 @@ fun MedicalServicesScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (selectedService != null) {
+
+            if (isLoading) {
+
+                Box(
+                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                ) {
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        CircularProgressIndicator()
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+
+                        Text(
+                            text = "Loading medical services...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
+            }
+
+            else if (error != null) {
+
+                Box(
+                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                ) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            text = "⚠️",
+                            fontSize = 42.sp
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+
+                        Text(
+                            text = "Unable to load medical services",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(8.dp)
+                        )
+
+                        Text(
+                            text = error ?: "Something went wrong.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(16.dp)
+                        )
+
+                        Button(
+                            onClick = { viewModel.fetchServices()
+                            }
+                        ) {
+
+                            Text("Retry")
+                        }
+                    }
+                }
+
+            }
+
+
+            else if (selectedService != null) {
+
                 ServiceDetailView(
                     service = selectedService!!,
                     onBackClick = { selectedService = null }
                 )
-            } else {
-                ServiceDirectoryListView(
+
+            } else { ServiceDirectoryListView(
                     services = filteredServices,
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     categories = categories,
                     selectedCategory = selectedCategory,
-                    onCategorySelect = { selectedCategory = it },
-                    onServiceClick = { selectedService = it }
+                    onCategorySelect = { selectedCategory = it
+                    },
+                    onServiceClick = { selectedService = it
+                    }
                 )
             }
         }
     }
 }
+
 
 @Composable
 fun ServiceDirectoryListView(

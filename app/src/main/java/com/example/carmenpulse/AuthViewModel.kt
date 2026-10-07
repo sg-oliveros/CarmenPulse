@@ -79,7 +79,7 @@ class AuthViewModel : ViewModel() {
                         "Please enter a valid Gmail address."
 
                     rawMessage.contains("invalid email", ignoreCase = true) ->
-                        "Please enter a valid Gmail address."
+                        "Incorrect Gmail or Password."
 
                     else ->
                         "Login failed. Please check your credentials and try again."

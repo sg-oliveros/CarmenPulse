@@ -107,7 +107,10 @@ fun SignUpScreen(
             },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(0.85f).height(60.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {

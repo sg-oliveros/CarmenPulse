@@ -4,11 +4,15 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import com.example.carmenpulse.ui.theme.BrandGreen
 
 @Composable
-fun CurvedBackground(modifier: Modifier = Modifier) {
+fun CurvedBackground(
+    modifier: Modifier = Modifier,
+    color: Color = BrandGreen
+) {
     Canvas(modifier = modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
@@ -28,7 +32,7 @@ fun CurvedBackground(modifier: Modifier = Modifier) {
 
         drawPath(
             path = path,
-            color = BrandGreen
+            color = color
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.example.carmenpulse
 
+import java.io.Serializable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -90,21 +91,24 @@ fun CommunityDiscussionScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
-        //text field input and send button for posting new comments
+        // Text field input and send button for posting new comments
         bottomBar = {
             Surface(
                 tonalElevation = 8.dp,
                 shadowElevation = 8.dp,
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding() // Pushes comment input bar up above soft keyboard when visible
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding() // Adds padding for bottom gesture/navigation bars
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    //text input field for typing quations
+                    // Text input field for typing questions or comments
                     OutlinedTextField(
                         value = commentInput,
                         onValueChange = { commentInput = it },
@@ -191,6 +195,7 @@ fun CommunityDiscussionScreen(
                 }
             }
 
+            //this displays announcement summary card and all comment bubbles
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()

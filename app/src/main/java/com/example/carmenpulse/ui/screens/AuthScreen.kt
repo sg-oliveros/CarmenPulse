@@ -1,19 +1,20 @@
 package com.example.carmenpulse.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.Path
 import com.example.carmenpulse.LoginScreen
 import com.example.carmenpulse.SignUpScreen
 import com.example.carmenpulse.AuthViewModel
@@ -22,6 +23,9 @@ import com.example.carmenpulse.ui.components.AuthToggleSwitch
 import com.example.carmenpulse.ui.components.CurvedBackground
 import com.example.carmenpulse.ui.theme.BrandGreen
 
+/**
+ * AuthScreen provides the login and registration container with responsive dark theme support.
+ */
 @Composable
 fun AuthScreen(
     onLoginSuccess: () -> Unit,
@@ -29,16 +33,20 @@ fun AuthScreen(
 ) {
     var isLoginSelected by remember { mutableStateOf(true) }
 
+    val isDark = isSystemInDarkTheme()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            // Adapts background color dynamically to current theme (light vs dark)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // Dynamic Curved Background Layer
+        // Dynamic Curved Background Layer - adapts container color in dark mode
         CurvedBackground(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 220.dp)
+                .padding(top = 220.dp),
+            color = if (isDark) MaterialTheme.colorScheme.primaryContainer else BrandGreen
         )
 
         // UI Content Overlay Layer
@@ -48,7 +56,7 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(90.dp))
 
-            // App Title Logo with Heartbeat
+            // App Title Logo with Heartbeat (dynamically tinted via primary theme color)
             LogoWithHeartbeat()
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -93,15 +101,18 @@ fun AuthScreen(
 
 @Composable
 fun LogoWithHeartbeat() {
+    // Tint logo text and line according to theme primary color
+    val logoColor = MaterialTheme.colorScheme.primary
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "CarmenPulse",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = BrandGreen
+            color = logoColor
         )
         Spacer(modifier = Modifier.width(8.dp))
-        //for the logo and curve design
+        // Logo pulse heartbeat graphic
         Canvas(modifier = Modifier.size(40.dp, 30.dp)) {
             val path = Path().apply {
                 val w = size.width
@@ -119,7 +130,7 @@ fun LogoWithHeartbeat() {
             }
             drawPath(
                 path = path,
-                color = BrandGreen,
+                color = logoColor,
                 style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
             )
         }

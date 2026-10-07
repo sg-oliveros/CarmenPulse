@@ -17,6 +17,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * CustomTextField provides a styled input field with rounded corners, optional password visibility toggle,
+ * and Material Theme colors for theme adaptive rendering.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomTextField(
@@ -52,21 +56,21 @@ fun CustomTextField(
                         Icon(
                             imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = "Toggle Password Visibility",
-                            tint = Color.Gray
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else null,
             colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
-                focusedContainerColor = Color(0xFFF1F1F1),
-                unfocusedContainerColor = Color(0xFFF1F1F1),
-                disabledContainerColor = Color(0xFFF1F1F1),
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
-                cursorColor = Color.Black
+                cursorColor = MaterialTheme.colorScheme.primary
             ),
             singleLine = true
         )

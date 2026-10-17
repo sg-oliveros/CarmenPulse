@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -339,9 +340,16 @@ fun CommunityDiscussionScreen(
                                 onClick = { activeThreadId = thread.advisoryId },
                                 label = {
                                     Text(
-                                        text = "💬 ${thread.title}",
+                                        text = thread.title,
                                         style = MaterialTheme.typography.labelMedium,
                                         maxLines = 1
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Forum,
+                                        contentDescription = "Forum Thread",
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(

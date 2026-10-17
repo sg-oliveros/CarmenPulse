@@ -12,16 +12,36 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
+import androidx.compose.material.icons.automirrored.outlined.ManageSearch
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Biotech
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.ChildFriendly
+import androidx.compose.material.icons.outlined.FamilyRestroom
+import androidx.compose.material.icons.outlined.HealthAndSafety
+import androidx.compose.material.icons.outlined.LocalHospital as OutlinedHospital
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.MeetingRoom
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PregnantWoman
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +61,40 @@ data class MedicalServiceItem(
     val procedureSteps: List<String>,
     val contactInfo: String = "Barangay Carmen Health Center Desk: (088) 858-1234",
 )
+
+/**
+ * Returns Google Material Icon matching category name
+ */
+fun getCategoryIcon(category: String): ImageVector {
+    return when {
+        category.contains("All", ignoreCase = true) -> Icons.Outlined.Category
+        category.contains("Primary", ignoreCase = true) -> Icons.Outlined.HealthAndSafety
+        category.contains("Dental", ignoreCase = true) -> Icons.Outlined.MedicalServices
+        category.contains("Pediatrics", ignoreCase = true) -> Icons.Outlined.ChildCare
+        category.contains("Maternal", ignoreCase = true) -> Icons.Outlined.PregnantWoman
+        category.contains("Maintenance", ignoreCase = true) -> Icons.Outlined.Medication
+        category.contains("Screening", ignoreCase = true) -> Icons.Outlined.Biotech
+        category.contains("Reproductive", ignoreCase = true) -> Icons.Outlined.FamilyRestroom
+        else -> Icons.Outlined.OutlinedHospital
+    }
+}
+
+/**
+ * Returns Google Material Icon matching medical service title/category
+ */
+fun getServiceIcon(category: String, title: String): ImageVector {
+    return when {
+        title.contains("Dental", ignoreCase = true) -> Icons.Outlined.MedicalServices
+        title.contains("Consultation", ignoreCase = true) -> Icons.Outlined.HealthAndSafety
+        title.contains("Immunization", ignoreCase = true) -> Icons.Outlined.Vaccines
+        title.contains("Prenatal", ignoreCase = true) -> Icons.Outlined.PregnantWoman
+        title.contains("Birthing", ignoreCase = true) -> Icons.Outlined.ChildFriendly
+        title.contains("Family Planning", ignoreCase = true) -> Icons.Outlined.FamilyRestroom
+        title.contains("Medicine", ignoreCase = true) -> Icons.Outlined.Medication
+        title.contains("TB", ignoreCase = true) || title.contains("Screening", ignoreCase = true) -> Icons.Outlined.Biotech
+        else -> Icons.Outlined.OutlinedHospital
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -367,126 +421,141 @@ fun ServiceDirectoryListView(
     onCategorySelect: (String) -> Unit,
     onServiceClick: (MedicalServiceItem) -> Unit
 ) {
-    Column(
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // Permanent Directory Header Banner Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+        // 1. Directory Header Banner Card (scrolls away to maximize screen space on scroll/rotation)
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                )
             ) {
-                Text(text = "🏥", fontSize = 28.sp)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Facility Services Directory",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalHospital,
+                        contentDescription = "Facility Directory",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
                     )
-                    Text(
-                        text = "Services Directory Guide for the residents.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search treatment", style = MaterialTheme.typography.bodyMedium) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Facility Services Directory",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Services Directory Guide for the residents.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 }
-            },
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Category Filter Chips
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(categories) { category ->
-                FilterChip(
-                    selected = selectedCategory == category,
-                    onClick = { onCategorySelect(category) },
-                    label = { Text(category, style = MaterialTheme.typography.labelMedium) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        // 2. Search Bar
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search treatment", style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        }
 
-        if (services.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
+        // 3. Category Filter Chips with Google Material Icons
+        item {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "🔍", fontSize = 36.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "No medical services found",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                items(categories) { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { onCategorySelect(category) },
+                        label = { Text(category, style = MaterialTheme.typography.labelMedium) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = getCategoryIcon(category),
+                                contentDescription = category,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
-                    Text(
-                        text = "Try adjusting your search terms or category filter.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+                }
+            }
+        }
+
+        // 4. Service Cards List / Empty State
+        if (services.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ManageSearch,
+                            contentDescription = "Search Empty",
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No medical services found",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Try adjusting your search terms or category filter.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
                 }
             }
         } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(services) { service ->
-                    DirectoryServiceCard(
-                        service = service,
-                        onClick = { onServiceClick(service) }
-                    )
-                }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+            items(services) { service ->
+                DirectoryServiceCard(
+                    service = service,
+                    onClick = { onServiceClick(service) }
+                )
             }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
@@ -496,6 +565,8 @@ fun DirectoryServiceCard(
     service: MedicalServiceItem,
     onClick: () -> Unit
 ) {
+    val serviceIcon = getServiceIcon(service.category, service.title)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -517,7 +588,12 @@ fun DirectoryServiceCard(
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(text = service.icon, fontSize = 24.sp)
+                    Icon(
+                        imageVector = serviceIcon,
+                        contentDescription = service.title,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
@@ -572,6 +648,8 @@ fun ServiceDetailView(
     service: MedicalServiceItem,
     onBackClick: () -> Unit
 ) {
+    val serviceIcon = getServiceIcon(service.category, service.title)
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -597,7 +675,12 @@ fun ServiceDetailView(
                             modifier = Modifier.size(56.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(text = service.icon, fontSize = 28.sp)
+                                Icon(
+                                    imageVector = serviceIcon,
+                                    contentDescription = service.title,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
@@ -656,21 +739,21 @@ fun ServiceDetailView(
                     )
 
                     DetailRefRow(
-                        icon = "📍",
+                        icon = Icons.Outlined.MeetingRoom,
                         label = "Room / Station Location",
                         value = service.roomNumber,
                         isHighlighted = true
                     )
 
                     DetailRefRow(
-                        icon = "⏰",
+                        icon = Icons.Outlined.Schedule,
                         label = "Operating Hours",
                         value = "${service.scheduleDays}\n${service.operatingHours}",
                         isHighlighted = false
                     )
 
                     DetailRefRow(
-                        icon = "🏥",
+                        icon = Icons.Outlined.OutlinedHospital,
                         label = "Facility Venue",
                         value = service.venue,
                         isHighlighted = false
@@ -690,7 +773,12 @@ fun ServiceDetailView(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "📋", fontSize = 20.sp)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.Assignment,
+                            contentDescription = "Requirements",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Requirements & Documents Needed",
@@ -719,7 +807,12 @@ fun ServiceDetailView(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "✅", fontSize = 14.sp)
+                                Icon(
+                                    imageVector = Icons.Filled.CheckCircle,
+                                    contentDescription = "Checked",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = req,
@@ -764,7 +857,12 @@ fun ServiceDetailView(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "🚶‍♂️", fontSize = 20.sp)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.DirectionsWalk,
+                            contentDescription = "Walk-In Procedure",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Walk-In & Triage Procedure",
@@ -819,19 +917,31 @@ fun ServiceDetailView(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Inquiries & Health Center Help Desk",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Phone,
+                        contentDescription = "Help Desk Phone",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = service.contactInfo,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Inquiries & Health Center Help Desk",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = service.contactInfo,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -858,7 +968,7 @@ fun ServiceDetailView(
 
 @Composable
 fun DetailRefRow(
-    icon: String,
+    icon: ImageVector,
     label: String,
     value: String,
     isHighlighted: Boolean
@@ -867,7 +977,12 @@ fun DetailRefRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
     ) {
-        Text(text = icon, fontSize = 18.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(

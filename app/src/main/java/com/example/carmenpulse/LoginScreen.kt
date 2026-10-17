@@ -3,15 +3,17 @@ package com.example.carmenpulse
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextDecoration
 import com.example.carmenpulse.ui.components.CustomTextField
 
 @Composable
@@ -60,7 +62,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(80.dp))
 
-        // Login submit button
+        // Login submit button with Google Material Login Icon
         Button(
             onClick = { 
                 // Handle authentication login logic and navigate to homepage
@@ -79,6 +81,12 @@ fun LoginScreen(
             shape = RoundedCornerShape(30.dp),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Login,
+                contentDescription = "Login Icon",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Login", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,7 @@ fun HomeAdvisoriesFeedScreen(
     onCommentClick: (Advisory) -> Unit = {}
 ) {
     val advisories by viewModel.advisories.collectAsState()
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -81,13 +83,15 @@ fun HomeAdvisoriesFeedScreen(
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
+            item(key = "welcome_card") {
                 Spacer(modifier = Modifier.height(4.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -113,7 +117,7 @@ fun HomeAdvisoriesFeedScreen(
                 }
             }
 
-            item {
+            item(key = "section_header") {
                 Text(
                     text = "Official Health Advisories",
                     style = MaterialTheme.typography.titleMedium,
@@ -122,7 +126,7 @@ fun HomeAdvisoriesFeedScreen(
                 )
             }
 
-            items(advisories) { advisory ->
+            items(advisories, key = { it.id }) { advisory ->
                 AdvisoryCard(
                     advisory = advisory,
                     onCommentClick = { onCommentClick(advisory) },

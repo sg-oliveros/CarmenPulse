@@ -3,6 +3,8 @@ package com.example.carmenpulse.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,9 +54,14 @@ fun AuthScreen(
             color = if (isDark) MaterialTheme.colorScheme.primaryContainer else BrandGreen
         )
 
+        val scrollState = rememberScrollState()
+
         // UI Content Overlay Layer
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(90.dp))
@@ -75,7 +82,7 @@ fun AuthScreen(
             // Form Content Layer
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(horizontal = 28.dp)
             ) {
                 if (isLoginSelected) {
@@ -90,6 +97,8 @@ fun AuthScreen(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

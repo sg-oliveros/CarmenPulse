@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -410,8 +411,12 @@ fun ServiceDirectoryListView(
     onCategorySelect: (String) -> Unit,
     onServiceClick: (MedicalServiceItem) -> Unit
 ) {
+    val listState = rememberLazyListState()
+
     LazyColumn(
+        state = listState,
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
@@ -480,12 +485,12 @@ fun ServiceDirectoryListView(
         }
 
         // 3. Category Filter Chips with Google Material Icons
-        item {
+        item(key = "category_chips_row") {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(categories) { category ->
+                items(categories, key = { it }) { category ->
                     FilterChip(
                         selected = selectedCategory == category,
                         onClick = { onCategorySelect(category) },
@@ -538,13 +543,12 @@ fun ServiceDirectoryListView(
                 }
             }
         } else {
-            items(services) { service ->
+            items(services, key = { it.id }) { service ->
                 DirectoryServiceCard(
                     service = service,
                     onClick = { onServiceClick(service) }
                 )
             }
-            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
@@ -638,8 +642,11 @@ fun ServiceDetailView(
     onBackClick: () -> Unit
 ) {
     val serviceIcon = getServiceIcon(service.category, service.title)
+    val listState = rememberLazyListState()
 
     LazyColumn(
+        state = listState,
+        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),

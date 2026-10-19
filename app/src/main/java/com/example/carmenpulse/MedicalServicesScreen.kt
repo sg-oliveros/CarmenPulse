@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.ManageSearch
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 data class MedicalServiceItem(
     val id: String,
@@ -101,6 +103,9 @@ fun MedicalServicesScreen() {
     var selectedService by remember { mutableStateOf<MedicalServiceItem?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
+
+    // Persistent state map tracking interested services across scroll and screen navigation
+    val interestedServiceIds = remember { mutableStateMapOf<String, Boolean>() }
 
     val categories = listOf(
         "All",
@@ -384,7 +389,10 @@ fun MedicalServicesScreen() {
             if (selectedService != null) {
                 ServiceDetailView(
                     service = selectedService!!,
-                    onBackClick = { selectedService = null }
+                    isInterested = interestedServiceIds[selectedService!!.id] == true,
+                    onInterestToggle = { isInterested ->
+                        interestedServiceIds[selectedService!!.id] = isInterested
+                    }
                 )
             } else {
                 ServiceDirectoryListView(
@@ -394,7 +402,8 @@ fun MedicalServicesScreen() {
                     categories = categories,
                     selectedCategory = selectedCategory,
                     onCategorySelect = { selectedCategory = it },
-                    onServiceClick = { selectedService = it }
+                    onServiceClick = { selectedService = it },
+                    interestedServiceIds = interestedServiceIds
                 )
             }
         }
@@ -409,7 +418,8 @@ fun ServiceDirectoryListView(
     categories: List<String>,
     selectedCategory: String,
     onCategorySelect: (String) -> Unit,
-    onServiceClick: (MedicalServiceItem) -> Unit
+    onServiceClick: (MedicalServiceItem) -> Unit,
+    interestedServiceIds: Map<String, Boolean> = emptyMap()
 ) {
     val listState = rememberLazyListState()
 
@@ -546,6 +556,7 @@ fun ServiceDirectoryListView(
             items(services, key = { it.id }) { service ->
                 DirectoryServiceCard(
                     service = service,
+                    isInterested = interestedServiceIds[service.id] == true,
                     onClick = { onServiceClick(service) }
                 )
             }
@@ -556,6 +567,7 @@ fun ServiceDirectoryListView(
 @Composable
 fun DirectoryServiceCard(
     service: MedicalServiceItem,
+    isInterested: Boolean = false,
     onClick: () -> Unit
 ) {
     val serviceIcon = getServiceIcon(service.category, service.title)
@@ -639,7 +651,8 @@ fun DirectoryServiceCard(
 @Composable
 fun ServiceDetailView(
     service: MedicalServiceItem,
-    onBackClick: () -> Unit
+    isInterested: Boolean,
+    onInterestToggle: (Boolean) -> Unit
 ) {
     val serviceIcon = getServiceIcon(service.category, service.title)
     val listState = rememberLazyListState()
@@ -942,18 +955,35 @@ fun ServiceDetailView(
             }
         }
 
-        // Back Button
+        // Action Button: Mark Interested (notifies admin via Supabase DB)
         item {
             Button(
-                onClick = onBackClick,
+                onClick = {
+                    onInterestToggle(!isInterested)
+                    // Sends interest record to Supabase database -> triggers Realtime alert on Admin Webpage
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(52.dp)
+                    .padding(vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isInterested) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primary,
+                    contentColor = if (isInterested) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(26.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
+                Icon(
+                    imageVector = if (isInterested) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+                    contentDescription = "Mark Interested",
+                    modifier = Modifier.size(20.dp),
+                    tint = if (isInterested) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Back to Services Directory",
-                    fontWeight = FontWeight.Bold
+                    text = if (isInterested) "Interested" else "Mark Interested",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
             }
         }

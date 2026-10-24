@@ -21,6 +21,7 @@ fun MainScreen(
     onLogout: () -> Unit = {}
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
+    var selectedForumServiceId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     // Detects whether the software keyboard (IME) is currently open on screen
     val isImeVisible = WindowInsets.isImeVisible
@@ -68,14 +69,20 @@ fun MainScreen(
             when (selectedTab) {
                 0 -> HomeAdvisoriesFeedScreen(
                     userName = "Resident",
-                    onCommentClick = { advisory ->
-                        // Switch to Forum tab (index 2) when Q&A thread is clicked
+                    onCommentClick = {
+                        // Switch to Forum tab (index 2)
                         selectedTab = 2
                     }
                 )
-                1 -> MedicalServicesScreen()
+                1 -> MedicalServicesScreen(
+                    onNavigateToForum = { serviceId ->
+                        selectedForumServiceId = serviceId
+                        selectedTab = 2
+                    }
+                )
                 2 -> CommunityDiscussionScreen(
-                    onBack = { selectedTab = 0 }
+                    initialServiceId = selectedForumServiceId,
+                    onBack = { selectedTab = 1 }
                 )
                 3 -> ProfileScreen(
                     onLogout = onLogout

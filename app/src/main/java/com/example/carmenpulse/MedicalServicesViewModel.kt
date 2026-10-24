@@ -3,6 +3,7 @@ package com.example.carmenpulse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carmenpulse.data.models.MedicalServices
+import com.example.carmenpulse.data.repository.AuthRepository
 import com.example.carmenpulse.data.repository.MedicalServiceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +14,12 @@ class MedicalServicesViewModel : ViewModel() {
 
     private val _services = MutableStateFlow<List<MedicalServices>>(emptyList())
     val services: StateFlow<List<MedicalServices>> = _services.asStateFlow()
+
+    private val _interestedServiceIds = MutableStateFlow<Set<Long>>(emptySet())
+    val interestedServiceIds: StateFlow<Set<Long>> = _interestedServiceIds.asStateFlow()
+
+    private val _interestCounts = MutableStateFlow<Map<Long, Int>>(emptyMap())
+    val interestCounts: StateFlow<Map<Long, Int>> = _interestCounts.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -36,6 +43,7 @@ class MedicalServicesViewModel : ViewModel() {
 
     init {
         fetchServices()
+        fetchInterests()
     }
 
     fun onSearchQuerySubmit(query: String) {
@@ -47,6 +55,44 @@ class MedicalServicesViewModel : ViewModel() {
         if (_selectedStatus.value != status) {
             _selectedStatus.value = status
             fetchServices()
+        }
+    }
+
+    fun fetchInterests() {
+        viewModelScope.launch {
+            try {
+                val profile = AuthRepository.getCurrentProfile()
+                if (profile != null) {
+                    _interestedServiceIds.value = MedicalServiceRepository.fetchUserInterestedServiceIds(profile.user_id)
+                }
+                _interestCounts.value = MedicalServiceRepository.fetchServiceInterestsCounts()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun toggleInterest(serviceId: Long) {
+        viewModelScope.launch {
+            val profile = AuthRepository.getCurrentProfile() ?: return@launch
+            val currentlyInterested = _interestedServiceIds.value.contains(serviceId)
+            val newInterested = !currentlyInterested
+
+            val updatedSet = if (newInterested) {
+                _interestedServiceIds.value + serviceId
+            } else {
+                _interestedServiceIds.value - serviceId
+            }
+            _interestedServiceIds.value = updatedSet
+
+            val currentCount = _interestCounts.value[serviceId] ?: 0
+            val newCount = if (newInterested) currentCount + 1 else (currentCount - 1).coerceAtLeast(0)
+            _interestCounts.value = _interestCounts.value + (serviceId to newCount)
+
+            try {
+                MedicalServiceRepository.toggleServiceInterest(serviceId, profile.user_id, newInterested)
+            } catch (_: Exception) {
+                fetchInterests()
+            }
         }
     }
 
@@ -63,6 +109,7 @@ class MedicalServicesViewModel : ViewModel() {
                 )
                 _services.value = result
                 _canLoadMore.value = result.size.toLong() >= pageSize
+                fetchInterests()
             } catch (e: Exception) {
                 _error.value = e.localizedMessage ?: "Failed to load medical services"
             } finally {

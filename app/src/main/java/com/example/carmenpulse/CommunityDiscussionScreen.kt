@@ -1,12 +1,11 @@
 package com.example.carmenpulse
 
-import java.io.Serializable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,34 +24,72 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carmenpulse.data.models.Comment
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommunityDiscussionScreen(
-    initialAdvisory: Advisory? = null,
+    initialServiceId: Long? = null,
     onBack: () -> Unit = {},
     viewModel: CommunityDiscussionViewModel = viewModel()
 ) {
-    val threads by viewModel.threads.collectAsState()
+    val services by viewModel.services.collectAsState()
     val comments by viewModel.comments.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    var activeThreadId by remember(initialAdvisory) {
-        mutableStateOf<Long?>(initialAdvisory?.id?.toLongOrNull())
+    var activeServiceId by remember(initialServiceId) {
+        mutableStateOf<Long?>(initialServiceId)
     }
     var commentInput by remember { mutableStateOf("") }
+    var dropdownExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(threads) {
-        if (activeThreadId == null && threads.isNotEmpty()) {
-            activeThreadId = threads.first().post_id
+    val listState = rememberLazyListState()
+    var isInitialLoad by remember { mutableStateOf(true) }
+
+    LaunchedEffect(services, initialServiceId) {
+        if (initialServiceId != null && services.any { it.service_id == initialServiceId }) {
+            activeServiceId = initialServiceId
+        } else if (activeServiceId == null && services.isNotEmpty()) {
+            activeServiceId = services.first().service_id
         }
     }
 
-    LaunchedEffect(activeThreadId) {
-        activeThreadId?.let { viewModel.loadComments(it) }
+    LaunchedEffect(activeServiceId) {
+        isInitialLoad = true
+        activeServiceId?.let { viewModel.loadComments(it) }
     }
 
-    val activeThread = threads.find { it.post_id == activeThreadId }
+    // Auto scroll to bottom when opening thread or when new comment is posted (Messenger style)
+    LaunchedEffect(comments) {
+        if (comments.isNotEmpty()) {
+            val targetIndex = (comments.size + 3).coerceAtLeast(0)
+            if (isInitialLoad) {
+                listState.scrollToItem(targetIndex)
+                isInitialLoad = false
+            } else {
+                listState.animateScrollToItem(targetIndex)
+            }
+        }
+    }
+
+    // Detect when user scrolls up to top to load older messages
+    val isAtTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0
+        }
+    }
+
+    LaunchedEffect(isAtTop) {
+        if (isAtTop && !isLoading && comments.isNotEmpty()) {
+            activeServiceId?.let { viewModel.loadMoreComments(it) }
+        }
+    }
+
+    val activeService = services.find { it.service_id == activeServiceId }
 
     Scaffold(
         topBar = {
@@ -74,7 +111,7 @@ fun CommunityDiscussionScreen(
                             )
                         }
                         Text(
-                            text = "Linked Announcement Discussion Threads",
+                            text = "Medical Services Discussion Threads",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -84,14 +121,13 @@ fun CommunityDiscussionScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to Home Feed"
+                            contentDescription = "Back"
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
-        // Text field input and send button for posting new comments
         bottomBar = {
             Surface(
                 tonalElevation = 8.dp,
@@ -99,22 +135,21 @@ fun CommunityDiscussionScreen(
                 color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .imePadding() // Pushes comment input bar up above soft keyboard when visible
+                    .imePadding()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding() // Adds padding for bottom gesture/navigation bars
+                        .navigationBarsPadding()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Text input field for typing questions or comments
                     OutlinedTextField(
                         value = commentInput,
                         onValueChange = { commentInput = it },
                         placeholder = {
                             Text(
-                                "Ask a question about this announcement...",
+                                "Ask a question about this medical service...",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
@@ -131,9 +166,9 @@ fun CommunityDiscussionScreen(
 
                     IconButton(
                         onClick = {
-                            val postId = activeThreadId
-                            if (postId != null && commentInput.isNotBlank()) {
-                                viewModel.postComment(postId, commentInput)
+                            val serviceId = activeServiceId
+                            if (serviceId != null && commentInput.isNotBlank()) {
+                                viewModel.postComment(serviceId, commentInput)
                                 commentInput = ""
                             }
                         },
@@ -157,46 +192,64 @@ fun CommunityDiscussionScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // horizontal filter chips to switch between announcements
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp)) {
+                Column(modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)) {
                     Text(
-                        text = "Select Announcement Q&A Thread:",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Select Medical Service Q&A Thread:",
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownExpanded,
+                        onExpandedChange = { dropdownExpanded = !dropdownExpanded },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(threads) { thread ->
-                            FilterChip(
-                                selected = activeThreadId == thread.post_id,
-                                onClick = { activeThreadId = thread.post_id },
-                                label = {
-                                    Text(
-                                        text = "\uD83D\uDCAC ${thread.title}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        maxLines = 1
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                )
+                        OutlinedTextField(
+                            value = activeService?.service_name ?: "Select a Medical Service",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                            modifier = Modifier
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                .fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
                             )
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = dropdownExpanded,
+                            onDismissRequest = { dropdownExpanded = false }
+                        ) {
+                            services.forEach { service ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = service.service_name,
+                                            fontWeight = if (service.service_id == activeServiceId) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    onClick = {
+                                        activeServiceId = service.service_id
+                                        dropdownExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            //this displays announcement summary card and all comment bubbles
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
@@ -204,7 +257,7 @@ fun CommunityDiscussionScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                if (activeThread != null) {
+                if (activeService != null) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -224,7 +277,7 @@ fun CommunityDiscussionScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     ) {
                                         Text(
-                                            text = "Linked Announcement Thread",
+                                            text = "Medical Service Thread",
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
@@ -232,7 +285,7 @@ fun CommunityDiscussionScreen(
                                         )
                                     }
                                     Text(
-                                        text = activeThread.category,
+                                        text = activeService.status ?: "Active",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
@@ -241,18 +294,36 @@ fun CommunityDiscussionScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
-                                    text = activeThread.title,
+                                    text = activeService.service_name,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
 
-                                Text(
-                                    text = activeThread.content,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
+                                if (!activeService.description.isNullOrBlank()) {
+                                    Text(
+                                        text = activeService.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.padding(top = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = "📍 ${activeService.location_venue}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = "📅 ${activeService.schedule_date}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
 
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 8.dp),
@@ -298,6 +369,21 @@ fun CommunityDiscussionScreen(
                             CircularProgressIndicator()
                         }
                     }
+                } else if (comments.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = "No questions yet for this service. Be the first to ask!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
                 } else {
                     items(comments) { comment ->
                         CommentBubble(comment = comment)
@@ -313,14 +399,19 @@ fun CommunityDiscussionScreen(
 @Composable
 fun CommentBubble(comment: Comment) {
     val roleId = comment.users?.role_id
-    val isBHW = roleId == 1L // only Admin is treated as official staff — no separate BHW role exists
-    val authorName = comment.users?.let { "${it.first_name} ${it.last_name}" } ?: "Unknown User"
-    val roleLabel = if (roleId == 1L) "Admin / Health Staff" else "Resident"
+    val isBHW = roleId == 1L || comment.user_id == 16L || comment.user_id == 30L || comment.user_id == 1L || (roleId != null && roleId != 2L)
+    val authorName = if (isBHW) "BHW Official" else "Anonymous"
+    val roleLabel = if (isBHW) "BHW" else "Resident"
 
-    //BHW staff cards get a tinted container; residents have a surface card
-    val bubbleColor = if (isBHW) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
+    // BHW (role_id = 1 or user_id = 30) comments get dark green body area, bright green outline & clear text
+    val bhwGreenBg = Color(0xFF1B4D2E)
+    val bhwGreenBorder = Color(0xFF4CAF50)
+    val bhwGreenText = Color(0xFFF1F8E9)
+    val bhwSubText = Color(0xFFC8E6C9)
+
+    val bubbleColor = if (isBHW) bhwGreenBg else MaterialTheme.colorScheme.surface
     val border = if (isBHW) {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+        BorderStroke(2.dp, bhwGreenBorder)
     } else {
         BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     }
@@ -328,7 +419,7 @@ fun CommentBubble(comment: Comment) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isBHW) 2.dp else 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isBHW) 3.dp else 1.dp),
         colors = CardDefaults.cardColors(containerColor = bubbleColor),
         border = border
     ) {
@@ -343,20 +434,20 @@ fun CommentBubble(comment: Comment) {
                         text = authorName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isBHW) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        color = if (isBHW) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(8.dp))
 
                     if (isBHW) {
-                        Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
+                        Surface(shape = RoundedCornerShape(6.dp), color = bhwGreenBorder) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Official",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "Official BHW",
+                                    tint = Color.White,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -364,7 +455,7 @@ fun CommentBubble(comment: Comment) {
                                     text = roleLabel,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    color = Color.White
                                 )
                             }
                         }
@@ -381,9 +472,9 @@ fun CommentBubble(comment: Comment) {
                 }
 
                 Text(
-                    text = comment.created_at?.take(16)?.replace("T", " ") ?: "",
+                    text = parseAndFormatDate(comment.created_at),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = if (isBHW) bhwSubText else MaterialTheme.colorScheme.outline
                 )
             }
 
@@ -392,8 +483,54 @@ fun CommentBubble(comment: Comment) {
             Text(
                 text = comment.content,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                fontWeight = if (isBHW) FontWeight.Medium else FontWeight.Normal,
+                color = if (isBHW) bhwGreenText else MaterialTheme.colorScheme.onSurface
             )
         }
+    }
+}
+
+private fun parseAndFormatDate(rawDateStr: String?): String {
+    if (rawDateStr.isNullOrBlank()) return ""
+    val pattern = "MMM dd, yyyy • h:mm a"
+    val outputFormatter = DateTimeFormatter.ofPattern(pattern)
+
+    return try {
+        val parsedOffsetDateTime = try {
+            OffsetDateTime.parse(rawDateStr)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (parsedOffsetDateTime != null) {
+            val localTime = parsedOffsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+            return localTime.format(outputFormatter)
+        }
+
+        val normalized = rawDateStr.replace(" ", "T")
+
+        val parsedLocalDateTime = try {
+            LocalDateTime.parse(normalized)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (parsedLocalDateTime != null) {
+            return parsedLocalDateTime.format(outputFormatter)
+        }
+
+        val parsedZonedDateTime = try {
+            ZonedDateTime.parse(rawDateStr)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (parsedZonedDateTime != null) {
+            return parsedZonedDateTime.format(outputFormatter)
+        }
+
+        rawDateStr
+    } catch (e: Exception) {
+        rawDateStr ?: ""
     }
 }

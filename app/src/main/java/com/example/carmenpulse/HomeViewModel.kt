@@ -8,10 +8,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-//the viewmodel holds and manages the data for the screen so it won't get lost when the screen rotates
 class HomeViewModel : ViewModel() {
     private val _advisories = MutableStateFlow<List<Advisory>>(emptyList())
     val advisories: StateFlow<List<Advisory>> = _advisories.asStateFlow()
@@ -26,15 +28,13 @@ class HomeViewModel : ViewModel() {
         fetchAdvisories()
     }
 
-
     fun fetchAdvisories() {
-
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
                 val posts = PostRepository.fetchPosts()
-                _advisories.value = posts.map { it.toAdvisory() }
+                _advisories.value = posts.sortedByDescending { it.post_id }.map { it.toAdvisory() }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to load advisories"
             } finally {
@@ -42,35 +42,59 @@ class HomeViewModel : ViewModel() {
             }
         }
     }
-
-    fun toggleInterest(advisoryId: String, isInterested: Boolean) {
-        val currentList = _advisories.value.toMutableList()
-        val index = currentList.indexOfFirst { it.id == advisoryId }
-        
-        if (index != -1) {
-            val advisory = currentList[index]
-            val newCount = if (isInterested) advisory.initialInterestedCount + 1
-            else advisory.initialInterestedCount - 1
-            
-            currentList[index] = advisory.copy(initialInterestedCount = newCount)
-            _advisories.value = currentList
-        }
-    }
 }
 
 private fun Posts.toAdvisory(): Advisory {
-    val formattedDate = try {
-        OffsetDateTime.parse(created_at)
-            .format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
-    } catch (e: Exception) {
-        created_at
-    }
     return Advisory(
         id = post_id.toString(),
         title = title,
-        date = formattedDate,
+        date = parseAndFormatDate(created_at),
         category = category,
-        snippet = content,
-        initialInterestedCount = 0
+        snippet = content
     )
+}
+
+private fun parseAndFormatDate(rawDateStr: String?): String {
+    if (rawDateStr.isNullOrBlank()) return ""
+    val pattern = "MMM dd, yyyy • h:mm a"
+    val outputFormatter = DateTimeFormatter.ofPattern(pattern)
+
+    return try {
+        val parsedOffsetDateTime = try {
+            OffsetDateTime.parse(rawDateStr)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (parsedOffsetDateTime != null) {
+            val localTime = parsedOffsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+            return localTime.format(outputFormatter)
+        }
+
+        val normalized = rawDateStr.replace(" ", "T")
+
+        val parsedLocalDateTime = try {
+            LocalDateTime.parse(normalized)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (parsedLocalDateTime != null) {
+            return parsedLocalDateTime.format(outputFormatter)
+        }
+
+        val parsedZonedDateTime = try {
+            ZonedDateTime.parse(rawDateStr)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (parsedZonedDateTime != null) {
+            return parsedZonedDateTime.format(outputFormatter)
+        }
+
+        rawDateStr
+    } catch (e: Exception) {
+        rawDateStr
+    }
 }

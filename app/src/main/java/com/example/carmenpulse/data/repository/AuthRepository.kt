@@ -5,11 +5,14 @@ import com.example.carmenpulse.data.models.User
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.query.Order
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
 
 object AuthRepository {
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+    }
 
     suspend fun signUp(
         email: String,
@@ -32,7 +35,7 @@ object AuthRepository {
     }
 
     suspend fun logIn(email: String, password: String) {
-        SupabaseClient.supabase.auth.signInWith(io.github.jan.supabase.auth.providers.builtin.Email) {
+        SupabaseClient.supabase.auth.signInWith(Email) {
             this.email = email
             this.password = password
         }
@@ -43,13 +46,64 @@ object AuthRepository {
     }
 
     suspend fun getCurrentProfile(): User? {
-        val userId = SupabaseClient.supabase.auth.currentSessionOrNull()?.user?.id ?: return null
-        return SupabaseClient.supabase.from("users")
-            .select {
-                filter {
-                    eq("auth_user_id", userId)
-                }
+        val authUser = SupabaseClient.supabase.auth.currentSessionOrNull()?.user ?: return null
+        val userId = authUser.id
+
+        return try {
+            val responseData = SupabaseClient.supabase.from("users")
+                .select {
+                    filter {
+                        eq("auth_user_id", userId)
+                    }
+                }.data
+
+            val userObj = json.parseToJsonElement(responseData).jsonArray.firstOrNull()?.jsonObject
+            if (userObj != null) {
+                val uId = userObj["user_id"]?.jsonPrimitive?.longOrNull ?: 1L
+                val rId = userObj["role_id"]?.jsonPrimitive?.longOrNull ?: 2L
+                val fn = userObj["first_name"]?.jsonPrimitive?.contentOrNull
+                val ln = userObj["last_name"]?.jsonPrimitive?.contentOrNull
+                val em = userObj["email"]?.jsonPrimitive?.contentOrNull ?: authUser.email
+                val cn = userObj["contact_number"]?.jsonPrimitive?.contentOrNull
+
+                User(
+                    user_id = uId,
+                    role_id = rId,
+                    auth_user_id = userId,
+                    first_name = fn,
+                    last_name = ln,
+                    email = em,
+                    contact_number = cn
+                )
+            } else {
+                val metaData = authUser.userMetadata
+                val metaFirstName = metaData?.get("first_name")?.jsonPrimitive?.contentOrNull
+                val metaLastName = metaData?.get("last_name")?.jsonPrimitive?.contentOrNull
+                val metaRoleId = metaData?.get("role_id")?.jsonPrimitive?.longOrNull ?: 1L
+
+                User(
+                    user_id = 1L,
+                    role_id = metaRoleId,
+                    auth_user_id = userId,
+                    first_name = metaFirstName,
+                    last_name = metaLastName,
+                    email = authUser.email
+                )
             }
-            .decodeSingleOrNull<User>()
+        } catch (_: Exception) {
+            val metaData = authUser.userMetadata
+            val metaFirstName = metaData?.get("first_name")?.jsonPrimitive?.contentOrNull
+            val metaLastName = metaData?.get("last_name")?.jsonPrimitive?.contentOrNull
+            val metaRoleId = metaData?.get("role_id")?.jsonPrimitive?.longOrNull ?: 1L
+
+            User(
+                user_id = 1L,
+                role_id = metaRoleId,
+                auth_user_id = userId,
+                first_name = metaFirstName,
+                last_name = metaLastName,
+                email = authUser.email
+            )
+        }
     }
 }

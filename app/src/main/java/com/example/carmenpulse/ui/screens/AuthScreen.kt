@@ -8,11 +8,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Path
@@ -23,30 +20,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.carmenpulse.LoginScreen
 import com.example.carmenpulse.SignUpScreen
+import com.example.carmenpulse.AuthViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carmenpulse.ui.components.AuthToggleSwitch
 import com.example.carmenpulse.ui.components.CurvedBackground
 import com.example.carmenpulse.ui.theme.BrandGreen
 
-/**
- * AuthScreen provides the login and registration container with responsive dark theme support.
- */
 @Composable
 fun AuthScreen(
-    onLoginSuccess: (email: String, name: String) -> Unit = { _, _ -> },
-    onSignUpSuccess: (name: String, email: String) -> Unit = { _, _ -> }
+    onLoginSuccess: () -> Unit = {},
+    authViewModel: AuthViewModel = viewModel()
 ) {
     var isLoginSelected by rememberSaveable { mutableStateOf(true) }
-    
-    // Checks if the system is currently in Dark Mode
     val isDark = isSystemInDarkTheme()
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(isLoginSelected) {
+        scrollState.scrollTo(0)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // Adapts background color dynamically to current theme (light vs dark)
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Dynamic Curved Background Layer - adapts container color in dark mode
         CurvedBackground(
             modifier = Modifier
                 .fillMaxSize()
@@ -54,9 +51,6 @@ fun AuthScreen(
             color = if (isDark) MaterialTheme.colorScheme.primaryContainer else BrandGreen
         )
 
-        val scrollState = rememberScrollState()
-
-        // UI Content Overlay Layer
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -66,12 +60,10 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(90.dp))
 
-            // App Title Logo with Heartbeat (dynamically tinted via primary theme color)
             LogoWithHeartbeat()
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Switcher Pill Toggle
             AuthToggleSwitch(
                 isLoginSelected = isLoginSelected,
                 onToggle = { isLoginSelected = it }
@@ -79,7 +71,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Form Content Layer
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,25 +78,32 @@ fun AuthScreen(
             ) {
                 if (isLoginSelected) {
                     LoginScreen(
-                        onNavigateToSignUp = { isLoginSelected = false },
-                        onLoginSuccess = onLoginSuccess
+                        onNavigateToSignUp = {
+                            isLoginSelected = false
+                            authViewModel.resetState()
+                        },
+                        onLoginSuccess = onLoginSuccess,
+                        authViewModel = authViewModel
                     )
                 } else {
                     SignUpScreen(
-                        onNavigateToLogin = { isLoginSelected = true },
-                        onSignUpSuccess = onSignUpSuccess
+                        onNavigateToLogin = {
+                            isLoginSelected = true
+                            authViewModel.resetState()
+                        },
+                        onSignUpSuccess = onLoginSuccess,
+                        authViewModel = authViewModel
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(64.dp))
         }
     }
 }
 
 @Composable
 fun LogoWithHeartbeat() {
-    // Tint logo text and line according to theme primary color
     val logoColor = MaterialTheme.colorScheme.primary
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -116,7 +114,6 @@ fun LogoWithHeartbeat() {
             color = logoColor
         )
         Spacer(modifier = Modifier.width(8.dp))
-        // Logo pulse heartbeat graphic
         Canvas(modifier = Modifier.size(40.dp, 30.dp)) {
             val path = Path().apply {
                 val w = size.width

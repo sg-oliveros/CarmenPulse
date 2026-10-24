@@ -97,12 +97,54 @@ fun getServiceIcon(category: String, title: String): ImageVector {
     }
 }
 
+data class HealthNotification(
+    val id: String,
+    val title: String,
+    val message: String,
+    val time: String,
+    val isUnread: Boolean = true
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicalServicesScreen() {
     var selectedService by remember { mutableStateOf<MedicalServiceItem?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
+    var showNotificationsDialog by remember { mutableStateOf(false) }
+
+    val notificationsList = remember {
+        mutableStateListOf(
+            HealthNotification(
+                id = "1",
+                title = "Immunization Drive Notice",
+                message = "Free infant and child routine vaccination (BCG, Polio, MMR) is scheduled this Wednesday at Room 104.",
+                time = "2 hrs ago",
+                isUnread = true
+            ),
+            HealthNotification(
+                id = "2",
+                title = "Senior Citizen NCD Distribution",
+                message = "Monthly maintenance medicine distribution for registered seniors will take place this Thursday at Room 106.",
+                time = "Yesterday",
+                isUnread = true
+            ),
+            HealthNotification(
+                id = "3",
+                title = "Dental Clinic Operating Hours",
+                message = "Dental Care & Oral Hygiene clinic is open every Mon, Wed, and Fri from 8:00 AM to 4:00 PM.",
+                time = "3 days ago",
+                isUnread = false
+            ),
+            HealthNotification(
+                id = "4",
+                title = "24/7 MCP Birthing Facility",
+                message = "Maternity Care Package (MCP) normal delivery service is fully operational 24/7 at the Right Wing.",
+                time = "5 days ago",
+                isUnread = false
+            )
+        )
+    }
 
     // Persistent state map tracking interested services across scroll and screen navigation
     val interestedServiceIds = remember { mutableStateMapOf<String, Boolean>() }
@@ -302,7 +344,6 @@ fun MedicalServicesScreen() {
         )
     }
 
-    // Handle back gesture/button when viewing details
     if (selectedService != null) {
         BackHandler {
             selectedService = null
@@ -363,8 +404,23 @@ fun MedicalServicesScreen() {
                     }
                 },
                 actions = {
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.primary)
+                    Box {
+                        IconButton(onClick = { showNotificationsDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        if (notificationsList.any { it.isUnread }) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.error)
+                                    .align(Alignment.TopEnd)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -406,6 +462,92 @@ fun MedicalServicesScreen() {
                     interestedServiceIds = interestedServiceIds
                 )
             }
+
+            if (showNotificationsDialog) {
+                AlertDialog(
+                    onDismissRequest = { showNotificationsDialog = false },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Health Center Notifications", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    text = {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 400.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(notificationsList, key = { it.id }) { notification ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val index = notificationsList.indexOfFirst { it.id == notification.id }
+                                            if (index != -1) {
+                                                notificationsList[index] = notification.copy(isUnread = false)
+                                            }
+                                        },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (notification.isUnread)
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                        else
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = notification.title,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = notification.time,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = notification.message,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            for (i in notificationsList.indices) {
+                                notificationsList[i] = notificationsList[i].copy(isUnread = false)
+                            }
+                        }) {
+                            Text("Mark all as read")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { showNotificationsDialog = false }) {
+                            Text("Close")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -431,7 +573,6 @@ fun ServiceDirectoryListView(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // 1. Directory Header Banner Card (scrolls away to maximize screen space on scroll/rotation)
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Card(
@@ -470,7 +611,6 @@ fun ServiceDirectoryListView(
             }
         }
 
-        // 2. Search Bar
         item {
             OutlinedTextField(
                 value = searchQuery,
@@ -494,7 +634,6 @@ fun ServiceDirectoryListView(
             )
         }
 
-        // 3. Category Filter Chips with Google Material Icons
         item(key = "category_chips_row") {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -521,7 +660,6 @@ fun ServiceDirectoryListView(
             }
         }
 
-        // 4. Service Cards List / Empty State
         if (services.isEmpty()) {
             item {
                 Box(
@@ -667,7 +805,6 @@ fun ServiceDetailView(
     ) {
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        // Hero Header Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -727,7 +864,6 @@ fun ServiceDetailView(
             }
         }
 
-        // Quick Ref Specs: Room Number, Operating Hours, Venue
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -771,7 +907,6 @@ fun ServiceDetailView(
             }
         }
 
-        // Requirements & Documents Needed (Static Reference Checklist)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -856,7 +991,6 @@ fun ServiceDetailView(
             }
         }
 
-        // Triage & Patient Walk-In Procedure
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -917,7 +1051,6 @@ fun ServiceDetailView(
             }
         }
 
-        // Help Desk & Contact Info
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -955,12 +1088,10 @@ fun ServiceDetailView(
             }
         }
 
-        // Action Button: Mark Interested (notifies admin via Supabase DB)
         item {
             Button(
                 onClick = {
                     onInterestToggle(!isInterested)
-                    // Sends interest record to Supabase database -> triggers Realtime alert on Admin Webpage
                 },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -26,22 +26,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-/**
- * ProfileScreen displays the logged-in resident's personal details,
- * verified barangay status, assigned health station, and logout action.
- * Allows residents to view and update their Purok Address on demand.
- */
 @Composable
 fun ProfileScreen(
-    currentUser: UserData = UserData(name = "Resident", email = "resident@example.com", purok = ""),
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    var addressInput by remember(currentUser.purok) { mutableStateOf(currentUser.purok) }
-    var isEditingAddress by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
-
     val scrollState = rememberScrollState()
+    val profile by authViewModel.profile.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.fetchProfile()
+    }
 
     Column(
         modifier = Modifier
@@ -54,7 +52,6 @@ fun ProfileScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- Profile Avatar Header ---
         Box(
             modifier = Modifier
                 .size(90.dp)
@@ -72,9 +69,8 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Resident Name Title
         Text(
-            text = currentUser.name.ifBlank { "Resident" },
+            text = if (profile != null) "${profile!!.first_name} ${profile!!.last_name}" else "Resident",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -82,7 +78,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Verified Resident Status Badge with checkmark icon
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
@@ -101,7 +96,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- Personal Information Card ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -123,81 +117,28 @@ fun ProfileScreen(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Email Row
                 ProfileDetailRow(
                     icon = Icons.Default.Email,
                     label = "E-mail Address",
-                    value = currentUser.email.ifBlank { "resident@example.com" }
+                    value = profile?.email ?: "resident@example.com"
                 )
 
-                // Editable Purok Address Section
-                if (isEditingAddress) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = addressInput,
-                            onValueChange = { addressInput = it },
-                            label = { Text("Purok Address") },
-                            placeholder = { Text("e.g. Purok 3, Barangay Carmen, CDO") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { isEditingAddress = false },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Done,
-                                contentDescription = "Save Address",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isEditingAddress = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            ProfileDetailRow(
-                                icon = Icons.Default.LocationOn,
-                                label = "Purok Address",
-                                value = if (addressInput.isNotBlank()) addressInput else "Not specified (Tap to add)",
-                                isMuted = addressInput.isBlank()
-                            )
-                        }
-                        IconButton(onClick = { isEditingAddress = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Address",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
+                ProfileDetailRow(
+                    icon = Icons.Default.LocationOn,
+                    label = "Purok Address",
+                    value = profile?.contact_number?.ifBlank { "Barangay Carmen, CDO" } ?: "Barangay Carmen, CDO"
+                )
 
-                // Resident ID Status Row
                 ProfileDetailRow(
                     icon = Icons.Default.Badge,
                     label = "Resident ID Status",
-                    value = "Active (ID #BC-2026-8832)"
+                    value = "Active & Verified"
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Logout Action Button
         OutlinedButton(
             onClick = { showLogoutDialog = true },
             modifier = Modifier
@@ -219,7 +160,6 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    // Logout Confirmation Dialog
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -271,7 +211,6 @@ fun ProfileDetailRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon container with rounded background
         Surface(
             shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -289,7 +228,6 @@ fun ProfileDetailRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Label and value text column
         Column {
             Text(
                 text = label,

@@ -12,6 +12,6 @@ data class MedicalServices(
     val location_venue: String,
     val requirements: String? = null,
     val status: String? = null,
-    val created_at: String? = null
-
+    val created_at: String? = null,
+    val schedule_time: String? = null
 )

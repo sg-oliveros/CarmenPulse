@@ -1,22 +1,26 @@
 package com.example.carmenpulse
 
-
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
+import com.example.carmenpulse.data.SupabaseClient
 import com.example.carmenpulse.ui.screens.AuthScreen
 import com.example.carmenpulse.ui.theme.CarmenPulseTheme
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -30,8 +34,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var isLoading by rememberSaveable { mutableStateOf(true) }
-                    var isLoggedIn by rememberSaveable { mutableStateOf(false) }
+                    val sessionStatus by SupabaseClient.supabase.auth.sessionStatus.collectAsState()
+                    var isLoading by remember { mutableStateOf(true) }
+                    var isLoggedIn by remember(sessionStatus) {
+                        mutableStateOf(sessionStatus is SessionStatus.Authenticated)
+                    }
+
+                    LaunchedEffect(sessionStatus) {
+                        if (sessionStatus is SessionStatus.Authenticated) {
+                            isLoggedIn = true
+                        } else if (sessionStatus is SessionStatus.NotAuthenticated) {
+                            isLoggedIn = false
+                        }
+                    }
 
                     if (isLoading) {
                         LoadingScreen(

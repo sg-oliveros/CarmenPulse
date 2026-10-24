@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,11 +19,15 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,12 +42,15 @@ data class MedicalServiceItem(
     val roomNumber: String,
     val operatingHours: String,
     val scheduleDays: String,
+    val scheduleTime: String? = null,
     val venue: String,
     val requirements: List<String>,
     val description: String,
     val procedureSteps: List<String>,
     val contactInfo: String = "Barangay Carmen Health Center Desk: (088) 858-1234",
 )
+
+
 
 private fun MedicalServices.toUiModel(): MedicalServiceItem {
     val parsedRequirements = requirements
@@ -51,19 +59,22 @@ private fun MedicalServices.toUiModel(): MedicalServiceItem {
         ?.filter { it.isNotEmpty() }
         ?: emptyList()
 
-    val categoryFromStatus = when {
-        status.isNullOrBlank() -> "Medical Service"
-        else -> status
+    val statusFromDb = when {
+        status.isNullOrBlank() -> "Upcoming"
+        else -> status.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
+
+
 
     return MedicalServiceItem(
         id = service_id.toString(),
         title = service_name,
-        category = categoryFromStatus,
+        category = statusFromDb,
         icon = "🏥",
         roomNumber = location_venue,
-        operatingHours = "Please check with the health center.",
+        operatingHours = schedule_time ?: "Not specified",
         scheduleDays = schedule_date,
+        scheduleTime = schedule_time,
         venue = location_venue,
         requirements = parsedRequirements,
         description = description ?: "No description available.",
@@ -79,74 +90,28 @@ fun MedicalServicesScreen(viewModel: MedicalServicesViewModel = viewModel())
 
     val services by viewModel.services.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+    val canLoadMore by viewModel.canLoadMore.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var selectedCategory by remember {
-        mutableStateOf("All")
-    }
-
-    var searchQuery by remember {
-        mutableStateOf("")
-    }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedStatus by viewModel.selectedStatus.collectAsState()
 
     var selectedService by remember {
         mutableStateOf<MedicalServiceItem?>(null)
     }
 
-
-    val categories = listOf(
+    val statuses = listOf(
         "All",
-        "Primary Care",
-        "Dental Care",
-        "Pediatrics",
-        "Maternal Health",
-        "Maintenance Medicine",
-        "Disease Screening"
+        "Upcoming",
+        "Ongoing",
+        "Completed",
+        "Cancelled"
     )
 
     val medicalServiceItems = remember(services) {
         services.map {
             it.toUiModel()
-        }
-    }
-
-    val filteredServices = remember(
-        medicalServiceItems,
-        searchQuery,
-        selectedCategory
-    ) {
-
-        medicalServiceItems.filter { service ->
-
-            val matchesCategory =
-                selectedCategory == "All" ||
-                        service.category.equals(
-                            selectedCategory,
-                            ignoreCase = true
-                        )
-
-            val matchesSearch =
-                searchQuery.isBlank() ||
-                        service.title.contains(
-                            searchQuery,
-                            ignoreCase = true
-                        ) ||
-                        service.description.contains(
-                            searchQuery,
-                            ignoreCase = true
-                        ) ||
-                        service.roomNumber.contains(
-                            searchQuery,
-                            ignoreCase = true
-                        ) ||
-                        service.requirements.any {
-                            it.contains(
-                                searchQuery,
-                                ignoreCase = true
-                            )
-                        }
-
-            matchesCategory && matchesSearch
         }
     }
 
@@ -312,16 +277,20 @@ fun MedicalServicesScreen(viewModel: MedicalServicesViewModel = viewModel())
                     onBackClick = { selectedService = null }
                 )
 
-            } else { ServiceDirectoryListView(
-                    services = filteredServices,
+            } else {
+                ServiceDirectoryListView(
+                    services = medicalServiceItems,
                     searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    categories = categories,
-                    selectedCategory = selectedCategory,
-                    onCategorySelect = { selectedCategory = it
-                    },
-                    onServiceClick = { selectedService = it
-                    }
+                    onSearchQueryChange = { viewModel.onSearchQuerySubmit(it) },
+                    statuses = statuses,
+                    selectedStatus = selectedStatus,
+                    onStatusSelect = { viewModel.onStatusSelected(it) },
+                    isRefreshing = isLoading,
+                    onRefresh = { viewModel.fetchServices() },
+                    canLoadMore = canLoadMore,
+                    isLoadingMore = isLoadingMore,
+                    onLoadMore = { viewModel.loadMoreServices() },
+                    onServiceClick = { selectedService = it }
                 )
             }
         }
@@ -329,21 +298,32 @@ fun MedicalServicesScreen(viewModel: MedicalServicesViewModel = viewModel())
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceDirectoryListView(
     services: List<MedicalServiceItem>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    categories: List<String>,
-    selectedCategory: String,
-    onCategorySelect: (String) -> Unit,
+    statuses: List<String>,
+    selectedStatus: String,
+    onStatusSelect: (String) -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    canLoadMore: Boolean,
+    isLoadingMore: Boolean,
+    onLoadMore: () -> Unit,
     onServiceClick: (MedicalServiceItem) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
         Spacer(modifier = Modifier.height(8.dp))
         
         // Permanent Directory Header Banner Card
@@ -379,20 +359,34 @@ fun ServiceDirectoryListView(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Search Bar
+        // Local State for typed query so typing does not trigger network requests
+        var typedSearchQuery by remember(searchQuery) { mutableStateOf(searchQuery) }
+
+        // Search Bar (queries Supabase only when clicking Search icon or Search/Done key on keyboard)
         OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
+            value = typedSearchQuery,
+            onValueChange = { typedSearchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search treatment", style = MaterialTheme.typography.bodyMedium) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            placeholder = { Text("Search treatment or venue", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = {
+                IconButton(onClick = { onSearchQueryChange(typedSearchQuery) }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search button")
+                }
+            },
             trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
+                if (typedSearchQuery.isNotEmpty()) {
+                    IconButton(onClick = {
+                        typedSearchQuery = ""
+                        onSearchQueryChange("")
+                    }) {
                         Icon(Icons.Default.Clear, contentDescription = "Clear search")
                     }
                 }
             },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                onSearchQueryChange(typedSearchQuery)
+            }),
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
@@ -403,16 +397,16 @@ fun ServiceDirectoryListView(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Category Filter Chips
+        // Status Filter Chips
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(categories) { category ->
+            items(statuses) { status ->
                 FilterChip(
-                    selected = selectedCategory == category,
-                    onClick = { onCategorySelect(category) },
-                    label = { Text(category, style = MaterialTheme.typography.labelMedium) },
+                    selected = selectedStatus == status,
+                    onClick = { onStatusSelect(status) },
+                    label = { Text(status, style = MaterialTheme.typography.labelMedium) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -440,7 +434,7 @@ fun ServiceDirectoryListView(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Try adjusting your search terms or category filter.",
+                        text = "Try adjusting your search terms or status filter.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -451,16 +445,59 @@ fun ServiceDirectoryListView(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(services) { service ->
+                itemsIndexed(services) { index, service ->
+                    if (index >= services.size - 1 && canLoadMore && !isLoadingMore) {
+                        LaunchedEffect(index) {
+                            onLoadMore()
+                        }
+                    }
+
                     DirectoryServiceCard(
                         service = service,
                         onClick = { onServiceClick(service) }
                     )
                 }
+
+                if (isLoadingMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Loading more services...",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                } else if (canLoadMore) {
+                    item {
+                        OutlinedButton(
+                            onClick = onLoadMore,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Load More Services")
+                        }
+                    }
+                }
+
                 item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }
+}
 }
 
 @Composable
@@ -496,16 +533,41 @@ fun DirectoryServiceCard(
             Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = service.category,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = service.category,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+
+                    val hasDate = service.scheduleDays.isNotBlank()
+                    val hasTime = !service.scheduleTime.isNullOrBlank()
+
+                    if (hasDate || hasTime) {
+                        val scheduleText = buildString {
+                            if (hasDate) append("📅 ${service.scheduleDays}")
+                            if (hasDate && hasTime) append(" • ")
+                            if (hasTime) append("⏰ ${service.scheduleTime}")
+                        }
+                        Text(
+                            text = scheduleText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -607,7 +669,7 @@ fun ServiceDetailView(
             }
         }
 
-        // Quick Ref Specs: Room Number, Operating Hours, Venue
+        // Quick Ref Specs: Room Number, Schedule Date & Time, Venue
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -621,7 +683,7 @@ fun ServiceDetailView(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Facility Reference & Hours",
+                        text = "Facility Reference & Schedule",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -634,10 +696,19 @@ fun ServiceDetailView(
                         isHighlighted = true
                     )
 
+                    if (service.scheduleDays.isNotBlank()) {
+                        DetailRefRow(
+                            icon = "📅",
+                            label = "Schedule Date",
+                            value = service.scheduleDays,
+                            isHighlighted = false
+                        )
+                    }
+
                     DetailRefRow(
                         icon = "⏰",
-                        label = "Operating Hours",
-                        value = "${service.scheduleDays}\n${service.operatingHours}",
+                        label = "Schedule Time",
+                        value = service.scheduleTime ?: "Not specified",
                         isHighlighted = false
                     )
 

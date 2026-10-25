@@ -9,26 +9,46 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.ManageSearch
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Biotech
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.ChildFriendly
+import androidx.compose.material.icons.outlined.FamilyRestroom
+import androidx.compose.material.icons.outlined.HealthAndSafety
+import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.MeetingRoom
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.PregnantWoman
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,7 +62,6 @@ data class MedicalServiceItem(
     val rawId: Long,
     val title: String,
     val category: String,
-    val icon: String,
     val roomNumber: String,
     val operatingHours: String,
     val scheduleDays: String,
@@ -54,6 +73,34 @@ data class MedicalServiceItem(
     val interestCount: Int = 0,
     val contactInfo: String = "Barangay Carmen Health Center Desk: (088) 858-1234",
 )
+
+fun getCategoryIcon(category: String): ImageVector {
+    return when {
+        category.contains("All", ignoreCase = true) -> Icons.Outlined.Category
+        category.contains("Primary", ignoreCase = true) -> Icons.Outlined.HealthAndSafety
+        category.contains("Dental", ignoreCase = true) -> Icons.Outlined.MedicalServices
+        category.contains("Pediatrics", ignoreCase = true) -> Icons.Outlined.ChildCare
+        category.contains("Maternal", ignoreCase = true) -> Icons.Outlined.PregnantWoman
+        category.contains("Maintenance", ignoreCase = true) -> Icons.Outlined.Medication
+        category.contains("Screening", ignoreCase = true) -> Icons.Outlined.Biotech
+        category.contains("Reproductive", ignoreCase = true) -> Icons.Outlined.FamilyRestroom
+        else -> Icons.Outlined.LocalHospital
+    }
+}
+
+fun getServiceIcon(category: String, title: String): ImageVector {
+    return when {
+        title.contains("Dental", ignoreCase = true) -> Icons.Outlined.MedicalServices
+        title.contains("Consultation", ignoreCase = true) -> Icons.Outlined.HealthAndSafety
+        title.contains("Immunization", ignoreCase = true) -> Icons.Outlined.Vaccines
+        title.contains("Prenatal", ignoreCase = true) -> Icons.Outlined.PregnantWoman
+        title.contains("Birthing", ignoreCase = true) -> Icons.Outlined.ChildFriendly
+        title.contains("Family Planning", ignoreCase = true) -> Icons.Outlined.FamilyRestroom
+        title.contains("Medicine", ignoreCase = true) -> Icons.Outlined.Medication
+        title.contains("TB", ignoreCase = true) || title.contains("Screening", ignoreCase = true) -> Icons.Outlined.Biotech
+        else -> Icons.Outlined.LocalHospital
+    }
+}
 
 private fun formatTimeWithoutSeconds(timeStr: String?): String? {
     if (timeStr.isNullOrBlank()) return null
@@ -95,7 +142,6 @@ private fun MedicalServices.toUiModel(
         rawId = service_id,
         title = service_name,
         category = statusFromDb,
-        icon = "🏥",
         roomNumber = location_venue,
         operatingHours = formattedTime ?: "Not specified",
         scheduleDays = schedule_date,
@@ -121,7 +167,6 @@ fun MedicalServicesScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
     val canLoadMore by viewModel.canLoadMore.collectAsState()
-    val error by viewModel.error.collectAsState()
 
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedStatus by viewModel.selectedStatus.collectAsState()
@@ -196,8 +241,12 @@ fun MedicalServicesScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = { viewModel.fetchServices() }) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Refresh",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 },
                 navigationIcon = {
@@ -219,274 +268,211 @@ fun MedicalServicesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Loading medical services...",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            } else if (error != null) {
-                Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+            if (selectedService != null) {
+                ServiceDetailView(
+                    service = selectedService!!,
+                    onInterestToggle = { viewModel.toggleInterest(selectedService!!.rawId) },
+                    onNavigateToForum = { onNavigateToForum(selectedService!!.rawId) },
+                    onBack = { selectedService = null }
+                )
+            } else {
+                PullToRefreshBox(
+                    isRefreshing = isLoading,
+                    onRefresh = { viewModel.fetchServices() },
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
                     ) {
-                        Text(text = "⚠️", fontSize = 42.sp)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Unable to load medical services",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = error ?: "Something went wrong.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.fetchServices() }) {
-                            Text("Retry")
-                        }
-                    }
-                }
-            } else if (selectedService != null) {
-                ServiceDetailView(
-                    service = selectedService!!,
-                    onBackClick = { selectedService = null },
-                    onInterestToggle = { viewModel.toggleInterest(selectedService!!.rawId) },
-                    onNavigateToForum = { onNavigateToForum(selectedService!!.rawId) }
-                )
-            } else {
-                ServiceDirectoryListView(
-                    services = medicalServiceItems,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { viewModel.onSearchQuerySubmit(it) },
-                    statuses = statuses,
-                    selectedStatus = selectedStatus,
-                    onStatusSelect = { viewModel.onStatusSelected(it) },
-                    isRefreshing = isLoading,
-                    onRefresh = { viewModel.fetchServices() },
-                    canLoadMore = canLoadMore,
-                    isLoadingMore = isLoadingMore,
-                    onLoadMore = { viewModel.loadMoreServices() },
-                    onServiceClick = { selectedService = it },
-                    onInterestToggle = { serviceId -> viewModel.toggleInterest(serviceId) },
-                    onNavigateToForum = onNavigateToForum
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ServiceDirectoryListView(
-    services: List<MedicalServiceItem>,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    statuses: List<String>,
-    selectedStatus: String,
-    onStatusSelect: (String) -> Unit,
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    canLoadMore: Boolean,
-    isLoadingMore: Boolean,
-    onLoadMore: () -> Unit,
-    onServiceClick: (MedicalServiceItem) -> Unit,
-    onInterestToggle: (Long) -> Unit,
-    onNavigateToForum: (Long) -> Unit
-) {
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Permanent Directory Header Banner Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "🏥", fontSize = 28.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Facility Services Directory",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = "Services Directory Guide for the residents.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            var typedSearchQuery by remember(searchQuery) { mutableStateOf(searchQuery) }
-
-            OutlinedTextField(
-                value = typedSearchQuery,
-                onValueChange = { typedSearchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search treatment or venue", style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = {
-                    IconButton(onClick = { onSearchQueryChange(typedSearchQuery) }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search button")
-                    }
-                },
-                trailingIcon = {
-                    if (typedSearchQuery.isNotEmpty()) {
-                        IconButton(onClick = {
-                            typedSearchQuery = ""
-                            onSearchQueryChange("")
-                        }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = {
-                    onSearchQueryChange(typedSearchQuery)
-                }),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(statuses) { status ->
-                    FilterChip(
-                        selected = selectedStatus == status,
-                        onClick = { onStatusSelect(status) },
-                        label = { Text(status, style = MaterialTheme.typography.labelMedium) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (services.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "🔍", fontSize = 36.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "No medical services found",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Try adjusting your search terms or status filter.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(services) { index, service ->
-                        if (index >= services.size - 1 && canLoadMore && !isLoadingMore) {
-                            LaunchedEffect(index) {
-                                onLoadMore()
-                            }
-                        }
-
-                        DirectoryServiceCard(
-                            service = service,
-                            onClick = { onServiceClick(service) },
-                            onInterestToggle = { onInterestToggle(service.rawId) },
-                            onNavigateToForum = { onNavigateToForum(service.rawId) }
-                        )
-                    }
-
-                    if (isLoadingMore) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.LocalHospital,
+                                    contentDescription = "Facility Directory",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
                                     Text(
-                                        text = "Loading more services...",
-                                        style = MaterialTheme.typography.bodySmall
+                                        text = "Facility Services Directory",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = "Services Directory Guide for the residents.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
                             }
                         }
-                    } else if (canLoadMore) {
-                        item {
-                            OutlinedButton(
-                                onClick = onLoadMore,
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        var typedSearchQuery by remember(searchQuery) { mutableStateOf(searchQuery) }
+
+                        OutlinedTextField(
+                            value = typedSearchQuery,
+                            onValueChange = { typedSearchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Search treatment or venue", style = MaterialTheme.typography.bodyMedium) },
+                            leadingIcon = {
+                                IconButton(onClick = { viewModel.onSearchQuerySubmit(typedSearchQuery) }) {
+                                    Icon(Icons.Default.Search, contentDescription = "Search button")
+                                }
+                            },
+                            trailingIcon = {
+                                if (typedSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        typedSearchQuery = ""
+                                        viewModel.onSearchQuerySubmit("")
+                                    }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                    }
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                viewModel.onSearchQuerySubmit(typedSearchQuery)
+                            }),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(statuses) { status ->
+                                FilterChip(
+                                    selected = selectedStatus == status,
+                                    onClick = { viewModel.onStatusSelected(status) },
+                                    label = { Text(status, style = MaterialTheme.typography.labelMedium) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = getCategoryIcon(status),
+                                            contentDescription = status,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (medicalServiceItems.isEmpty() && !isLoading) {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                shape = RoundedCornerShape(12.dp)
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("Load More Services")
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.ManageSearch,
+                                        contentDescription = "Search Empty",
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "No medical services found",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Try adjusting your search terms or status filter.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                itemsIndexed(medicalServiceItems) { index, service ->
+                                    if (index >= medicalServiceItems.size - 1 && canLoadMore && !isLoadingMore) {
+                                        LaunchedEffect(index) {
+                                            viewModel.loadMoreServices()
+                                        }
+                                    }
+
+                                    DirectoryServiceCard(
+                                        service = service,
+                                        onClick = { selectedService = service },
+                                        onInterestToggle = { viewModel.toggleInterest(service.rawId) },
+                                        onNavigateToForum = { onNavigateToForum(service.rawId) }
+                                    )
+                                }
+
+                                if (isLoadingMore) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(20.dp),
+                                                    strokeWidth = 2.dp
+                                                )
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Text(
+                                                    text = "Loading more services...",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else if (canLoadMore) {
+                                    item {
+                                        OutlinedButton(
+                                            onClick = { viewModel.loadMoreServices() },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Text("Load More Services")
+                                        }
+                                    }
+                                }
+
+                                item { Spacer(modifier = Modifier.height(16.dp)) }
                             }
                         }
                     }
-
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
         }
@@ -500,6 +486,8 @@ fun DirectoryServiceCard(
     onInterestToggle: () -> Unit,
     onNavigateToForum: () -> Unit
 ) {
+    val serviceIcon = getServiceIcon(service.category, service.title)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -524,7 +512,12 @@ fun DirectoryServiceCard(
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(text = service.icon, fontSize = 24.sp)
+                        Icon(
+                            imageVector = serviceIcon,
+                            contentDescription = service.title,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
 
@@ -553,9 +546,9 @@ fun DirectoryServiceCard(
 
                         if (hasDate || hasTime) {
                             val scheduleText = buildString {
-                                if (hasDate) append("📅 ${service.scheduleDays}")
+                                if (hasDate) append(service.scheduleDays)
                                 if (hasDate && hasTime) append(" • ")
-                                if (hasTime) append("⏰ ${service.scheduleTime}")
+                                if (hasTime) append(service.scheduleTime)
                             }
                             Text(
                                 text = scheduleText,
@@ -599,54 +592,45 @@ fun DirectoryServiceCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilledTonalButton(
+                OutlinedButton(
                     onClick = onInterestToggle,
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = if (service.isInterested) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        contentColor = if (service.isInterested) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (service.isInterested) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.height(36.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Icon(
                         imageVector = if (service.isInterested) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                        contentDescription = "Interested",
-                        modifier = Modifier.size(16.dp),
-                        tint = if (service.isInterested) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (service.isInterested) "Interested (${service.interestCount})" else "Mark Interested (${service.interestCount})",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (service.isInterested) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onNavigateToForum,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Forum,
-                        contentDescription = "Q&A Forum",
+                        contentDescription = "Interest",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Q&A Forum",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        text = if (service.isInterested) "Interested (${service.interestCount})" else "Mark Interested (${service.interestCount})",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+
+                IconButton(
+                    onClick = onNavigateToForum,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Forum,
+                        contentDescription = "Forum Q&A",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -657,11 +641,16 @@ fun DirectoryServiceCard(
 @Composable
 fun ServiceDetailView(
     service: MedicalServiceItem,
-    onBackClick: () -> Unit,
     onInterestToggle: () -> Unit,
-    onNavigateToForum: () -> Unit
+    onNavigateToForum: () -> Unit,
+    onBack: () -> Unit
 ) {
+    val serviceIcon = getServiceIcon(service.category, service.title)
+    val listState = rememberLazyListState()
+
     LazyColumn(
+        state = listState,
+        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
@@ -669,7 +658,6 @@ fun ServiceDetailView(
     ) {
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        // Hero Header Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -686,7 +674,12 @@ fun ServiceDetailView(
                             modifier = Modifier.size(56.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(text = service.icon, fontSize = 28.sp)
+                                Icon(
+                                    imageVector = serviceIcon,
+                                    contentDescription = service.title,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
@@ -720,63 +713,10 @@ fun ServiceDetailView(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilledTonalButton(
-                            onClick = onInterestToggle,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = if (service.isInterested) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                contentColor = if (service.isInterested) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (service.isInterested) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                                contentDescription = "Interested",
-                                modifier = Modifier.size(18.dp),
-                                tint = if (service.isInterested) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (service.isInterested) "Interested (${service.interestCount})" else "Interested (${service.interestCount})",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (service.isInterested) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        Button(
-                            onClick = onNavigateToForum,
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Forum,
-                                contentDescription = "Go to Q&A Forum",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Q&A Forum",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                        }
-                    }
                 }
             }
         }
 
-        // Quick Ref Specs: Room Number, Schedule Date & Time, Venue
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -797,7 +737,7 @@ fun ServiceDetailView(
                     )
 
                     DetailRefRow(
-                        icon = "📍",
+                        icon = Icons.Outlined.MeetingRoom,
                         label = "Room / Station Location",
                         value = service.roomNumber,
                         isHighlighted = true
@@ -805,7 +745,7 @@ fun ServiceDetailView(
 
                     if (service.scheduleDays.isNotBlank()) {
                         DetailRefRow(
-                            icon = "📅",
+                            icon = Icons.Outlined.CalendarToday,
                             label = "Schedule Date",
                             value = service.scheduleDays,
                             isHighlighted = false
@@ -813,14 +753,14 @@ fun ServiceDetailView(
                     }
 
                     DetailRefRow(
-                        icon = "⏰",
+                        icon = Icons.Outlined.Schedule,
                         label = "Schedule Time",
                         value = service.scheduleTime ?: "Not specified",
                         isHighlighted = false
                     )
 
                     DetailRefRow(
-                        icon = "🏥",
+                        icon = Icons.Outlined.LocalHospital,
                         label = "Facility Venue",
                         value = service.venue,
                         isHighlighted = false
@@ -829,7 +769,6 @@ fun ServiceDetailView(
             }
         }
 
-        // Requirements & Documents Needed (Static Reference Checklist)
         if (service.requirements.isNotEmpty()) {
             item {
                 Card(
@@ -841,7 +780,12 @@ fun ServiceDetailView(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "📋", fontSize = 20.sp)
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Assignment,
+                                contentDescription = "Requirements",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Requirements & Documents Needed",
@@ -870,7 +814,12 @@ fun ServiceDetailView(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(text = "✅", fontSize = 14.sp)
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Checked",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = req,
@@ -881,65 +830,51 @@ fun ServiceDetailView(
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.Top,
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Note",
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Note: First-time patients will be registered at the desk and issued a Health Center Patient Index Card.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
                     }
                 }
             }
         }
 
-        // Help Desk & Contact Info
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
+            Button(
+                onClick = onInterestToggle,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .padding(vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (service.isInterested) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primary,
+                    contentColor = if (service.isInterested) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(26.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Inquiries & Health Center Help Desk",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = service.contactInfo,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Icon(
+                    imageVector = if (service.isInterested) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+                    contentDescription = "Mark Interested",
+                    modifier = Modifier.size(20.dp),
+                    tint = if (service.isInterested) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (service.isInterested) "Interested (${service.interestCount})" else "Mark Interested (${service.interestCount})",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
             }
         }
 
-        // Back Button
         item {
             Button(
-                onClick = onBackClick,
+                onClick = onBack,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(50.dp),
+                shape = RoundedCornerShape(25.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             ) {
                 Text(
                     text = "Back to Services Directory",
@@ -954,7 +889,7 @@ fun ServiceDetailView(
 
 @Composable
 fun DetailRefRow(
-    icon: String,
+    icon: ImageVector,
     label: String,
     value: String,
     isHighlighted: Boolean
@@ -963,7 +898,12 @@ fun DetailRefRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
     ) {
-        Text(text = icon, fontSize = 18.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(

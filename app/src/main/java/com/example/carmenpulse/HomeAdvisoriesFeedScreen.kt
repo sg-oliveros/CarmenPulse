@@ -93,7 +93,7 @@ fun HomeAdvisoriesFeedScreen(
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            text = "Mabuhay, ${userName.ifBlank { "Resident" }}! 👋",
+                            text = "Mabuhay, ${userName.ifBlank { "Resident" }}!",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer

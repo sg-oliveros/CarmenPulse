@@ -154,63 +154,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        val context = LocalContext.current
-
-        // Test Notification Button
-        FilledTonalButton(
-            onClick = {
-                NotificationHelper.showNotification(
-                    context = context,
-                    channelId = NotificationHelper.CHANNEL_ADVISORIES_ID,
-                    title = "CareConnect Advisory",
-                    message = "This is a test notification from Barangay Carmen!"
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(50.dp),
-            shape = RoundedCornerShape(25.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Send Test Notification", fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Copy FCM Token Button for Firebase Console Testing
-        OutlinedButton(
-            onClick = {
-                try {
-                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val token = task.result
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("FCM Token", token)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "FCM Token copied! Paste it into Firebase Console.", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(context, "FCM Token not available yet", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(48.dp),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Text("Copy FCM Token for Firebase", fontWeight = FontWeight.SemiBold)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // Logout Action Button
         OutlinedButton(
             onClick = { showLogoutDialog = true },

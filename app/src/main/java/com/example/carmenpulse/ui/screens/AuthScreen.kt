@@ -106,7 +106,7 @@ fun LogoWithHeartbeat() {
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = "CarmenPulse",
+            text = "CareConnect",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = logoColor

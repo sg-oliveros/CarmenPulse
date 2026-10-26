@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,8 +34,8 @@ fun MainScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home") },
+                        icon = { Icon(Icons.Default.Campaign, contentDescription = "Advisories") },
+                        label = { Text("Advisories") },
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 }
                     )

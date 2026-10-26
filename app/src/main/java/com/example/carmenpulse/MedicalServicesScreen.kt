@@ -2,6 +2,7 @@ package com.example.carmenpulse
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -47,6 +48,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -161,6 +164,7 @@ fun MedicalServicesScreen(
     onNavigateToForum: (Long) -> Unit = {}
 ) {
 
+    val context = LocalContext.current
     val services by viewModel.services.collectAsState()
     val interestedIds by viewModel.interestedServiceIds.collectAsState()
     val interestCounts by viewModel.interestCounts.collectAsState()
@@ -170,6 +174,16 @@ fun MedicalServicesScreen(
 
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedStatus by viewModel.selectedStatus.collectAsState()
+
+    val notifications by viewModel.notifications.collectAsState()
+    val isLoadingNotifications by viewModel.isLoadingNotifications.collectAsState()
+    val hasUnread by viewModel.hasUnread.collectAsState()
+
+    var showNotificationsSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchNotifications(context)
+    }
 
     var selectedService by remember {
         mutableStateOf<MedicalServiceItem?>(null)
@@ -212,21 +226,22 @@ fun MedicalServicesScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(50.dp)
+                                    .size(44.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "CP",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontWeight = FontWeight.Bold
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                    contentDescription = "CareConnect Logo",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(36.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "CarmenPulse",
+                                    text = "CareConnect",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -241,12 +256,29 @@ fun MedicalServicesScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.fetchServices() }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Refresh",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    IconButton(
+                        onClick = {
+                            viewModel.fetchNotifications(context)
+                            viewModel.markNotificationsAsRead(context)
+                            showNotificationsSheet = true
+                        }
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                if (hasUnread) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -272,8 +304,7 @@ fun MedicalServicesScreen(
                 ServiceDetailView(
                     service = selectedService!!,
                     onInterestToggle = { viewModel.toggleInterest(selectedService!!.rawId) },
-                    onNavigateToForum = { onNavigateToForum(selectedService!!.rawId) },
-                    onBack = { selectedService = null }
+                    onNavigateToForum = { onNavigateToForum(selectedService!!.rawId) }
                 )
             } else {
                 PullToRefreshBox(
@@ -476,6 +507,14 @@ fun MedicalServicesScreen(
                 }
             }
         }
+
+        if (showNotificationsSheet) {
+            NotificationsBottomSheet(
+                notifications = notifications,
+                isLoading = isLoadingNotifications,
+                onDismiss = { showNotificationsSheet = false }
+            )
+        }
     }
 }
 
@@ -642,8 +681,7 @@ fun DirectoryServiceCard(
 fun ServiceDetailView(
     service: MedicalServiceItem,
     onInterestToggle: () -> Unit,
-    onNavigateToForum: () -> Unit,
-    onBack: () -> Unit
+    onNavigateToForum: () -> Unit
 ) {
     val serviceIcon = getServiceIcon(service.category, service.title)
     val listState = rememberLazyListState()
@@ -866,18 +904,24 @@ fun ServiceDetailView(
 
         item {
             Button(
-                onClick = onBack,
+                onClick = onNavigateToForum,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             ) {
+                Icon(
+                    imageVector = Icons.Default.Forum,
+                    contentDescription = "Service Discussion Forum",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Back to Services Directory",
+                    text = "Go to Service Forum",
                     fontWeight = FontWeight.Bold
                 )
             }

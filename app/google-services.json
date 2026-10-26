@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "392513648011",
+    "project_id": "careconnect-ade4a",
+    "storage_bucket": "careconnect-ade4a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:392513648011:android:f0f2c007b8240ad474eb8e",
+        "android_client_info": {
+          "package_name": "com.example.carmenpulse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyLgHL0G_REFZWDGigbztrBD5hSAey8-Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

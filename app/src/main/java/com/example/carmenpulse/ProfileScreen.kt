@@ -1,5 +1,9 @@
 package com.example.carmenpulse
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,6 +17,7 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,9 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.carmenpulse.util.NotificationHelper
+import com.google.firebase.messaging.FirebaseMessaging
 
 /**
  * ProfileScreen displays the logged-in resident's personal details,
@@ -146,6 +154,63 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
+        val context = LocalContext.current
+
+        // Test Notification Button
+        FilledTonalButton(
+            onClick = {
+                NotificationHelper.showNotification(
+                    context = context,
+                    channelId = NotificationHelper.CHANNEL_ADVISORIES_ID,
+                    title = "CareConnect Advisory",
+                    message = "This is a test notification from Barangay Carmen!"
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .height(50.dp),
+            shape = RoundedCornerShape(25.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Send Test Notification", fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Copy FCM Token Button for Firebase Console Testing
+        OutlinedButton(
+            onClick = {
+                try {
+                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val token = task.result
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("FCM Token", token)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "FCM Token copied! Paste it into Firebase Console.", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "FCM Token not available yet", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .height(48.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Text("Copy FCM Token for Firebase", fontWeight = FontWeight.SemiBold)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // Logout Action Button
         OutlinedButton(
             onClick = { showLogoutDialog = true },
@@ -173,7 +238,7 @@ fun ProfileScreen(
                 )
             },
             text = {
-                Text("Are you sure you want to log out of your CarmenPulse account?")
+                Text("Are you sure you want to log out of your CareConnect account?")
             },
             confirmButton = {
                 TextButton(

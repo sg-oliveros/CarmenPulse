@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase Service Account Private Keys
+*firebase-adminsdk*.json

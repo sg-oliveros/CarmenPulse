@@ -1,10 +1,13 @@
 package com.example.carmenpulse
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carmenpulse.data.models.AppNotification
 import com.example.carmenpulse.data.models.MedicalServices
 import com.example.carmenpulse.data.repository.AuthRepository
 import com.example.carmenpulse.data.repository.MedicalServiceRepository
+import com.example.carmenpulse.data.repository.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +38,14 @@ class MedicalServicesViewModel : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
+    val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
+
+    private val _isLoadingNotifications = MutableStateFlow(false)
+    val isLoadingNotifications: StateFlow<Boolean> = _isLoadingNotifications.asStateFlow()
+
+    val hasUnread: StateFlow<Boolean> = NotificationRepository.hasUnread
 
     private val _selectedStatus = MutableStateFlow("All")
     val selectedStatus: StateFlow<String> = _selectedStatus.asStateFlow()
@@ -141,5 +152,23 @@ class MedicalServicesViewModel : ViewModel() {
                 _isLoadingMore.value = false
             }
         }
+    }
+
+    fun fetchNotifications(context: Context? = null) {
+        viewModelScope.launch {
+            _isLoadingNotifications.value = true
+            try {
+                val list = NotificationRepository.fetchRecentNotifications(context, 30)
+                _notifications.value = list
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoadingNotifications.value = false
+            }
+        }
+    }
+
+    fun markNotificationsAsRead(context: Context) {
+        NotificationRepository.markAllAsRead(context, _notifications.value)
     }
 }

@@ -46,14 +46,14 @@ fun LoadingScreen(onFinished: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // CarmenPulse Title + Heartbeat Logo
+        // CareConnect Title + Heartbeat Logo
         val primaryColor = MaterialTheme.colorScheme.primary
         Row(
             modifier = Modifier.alpha(titleAlpha.value),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "CarmenPulse",
+                text = "CareConnect",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = primaryColor

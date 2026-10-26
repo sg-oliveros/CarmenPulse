@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Posts(
-    val post_id: Long,
-    val user_id: Long,
-    val title: String,
-    val content: String,
-    val category: String,
-    val created_at: String,
-    val updated_at: String
+    val post_id: Long = 0L,
+    val user_id: Long = 0L,
+    val title: String = "",
+    val content: String = "",
+    val category: String? = null,
+    val created_at: String? = null,
+    val updated_at: String? = null
 )

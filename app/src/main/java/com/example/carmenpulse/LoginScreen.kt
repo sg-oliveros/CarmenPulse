@@ -32,6 +32,10 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var biometricError by remember { mutableStateOf<String?>(null) }
 
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var resetEmailInput by remember { mutableStateOf("") }
+    val resetPasswordState by authViewModel.resetPasswordState.collectAsState()
+
     val context = LocalContext.current
     val activity = context as? FragmentActivity
 
@@ -83,7 +87,11 @@ fun LoginScreen(
             modifier = Modifier
                 .align(Alignment.End)
                 .padding(top = 10.dp)
-                .clickable { /* TODO: Implement forgot password action */ }
+                .clickable {
+                    resetEmailInput = email
+                    authViewModel.clearResetPasswordState()
+                    showForgotPasswordDialog = true
+                }
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -168,5 +176,100 @@ fun LoginScreen(
                 modifier = Modifier.clickable { onNavigateToSignUp() }
             )
         }
+    }
+
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showForgotPasswordDialog = false
+                authViewModel.clearResetPasswordState()
+            },
+            title = {
+                Text(
+                    text = "Reset Password",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Enter your registered email address and we will send you a password reset link.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = resetEmailInput,
+                        onValueChange = { resetEmailInput = it },
+                        label = { Text("E-mail Address") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    when (resetPasswordState) {
+                        is ResetPasswordState.Loading -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Sending reset email...", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        is ResetPasswordState.Success -> {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = (resetPasswordState as ResetPasswordState.Success).message,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(10.dp)
+                                )
+                            }
+                        }
+                        is ResetPasswordState.Error -> {
+                            Text(
+                                text = (resetPasswordState as ResetPasswordState.Error).message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        else -> {}
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        authViewModel.sendPasswordResetEmail(resetEmailInput)
+                    },
+                    enabled = resetEmailInput.isNotBlank() && resetPasswordState !is ResetPasswordState.Loading,
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text("Send Reset Link")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showForgotPasswordDialog = false
+                        authViewModel.clearResetPasswordState()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

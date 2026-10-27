@@ -45,6 +45,10 @@ object AuthRepository {
         SupabaseClient.supabase.auth.signOut()
     }
 
+    suspend fun resetPassword(email: String) {
+        SupabaseClient.supabase.auth.resetPasswordForEmail(email)
+    }
+
     suspend fun getCurrentProfile(): User? {
         val authUser = SupabaseClient.supabase.auth.currentSessionOrNull()?.user ?: return null
         val userId = authUser.id

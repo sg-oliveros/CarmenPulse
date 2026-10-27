@@ -18,6 +18,13 @@ sealed interface AuthState {
     data class Error(val message: String) : AuthState
 }
 
+sealed interface ResetPasswordState {
+    object Idle : ResetPasswordState
+    object Loading : ResetPasswordState
+    data class Success(val message: String) : ResetPasswordState
+    data class Error(val message: String) : ResetPasswordState
+}
+
 class AuthViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
@@ -101,6 +108,31 @@ class AuthViewModel : ViewModel() {
     // so leftover Success state can't leak into the next screen shown.
     fun resetState() {
         _authState.value = AuthState.Idle
+    }
+
+    private val _resetPasswordState = MutableStateFlow<ResetPasswordState>(ResetPasswordState.Idle)
+    val resetPasswordState: StateFlow<ResetPasswordState> = _resetPasswordState.asStateFlow()
+
+    fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            _resetPasswordState.value = ResetPasswordState.Loading
+            try {
+                AuthRepository.resetPassword(email.trim())
+                _resetPasswordState.value = ResetPasswordState.Success("Password reset email sent! Please check your inbox.")
+            } catch (e: Exception) {
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+                    isNetworkError(rawMessage, e) -> "No internet connection."
+                    rawMessage.contains("invalid email", ignoreCase = true) || rawMessage.contains("email", ignoreCase = true) -> "Please enter a valid email address."
+                    else -> "Failed to send reset link. Please check your email and try again."
+                }
+                _resetPasswordState.value = ResetPasswordState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun clearResetPasswordState() {
+        _resetPasswordState.value = ResetPasswordState.Idle
     }
 
     fun loadProfile() {

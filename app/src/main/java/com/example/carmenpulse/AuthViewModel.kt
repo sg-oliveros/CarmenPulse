@@ -33,6 +33,9 @@ class AuthViewModel : ViewModel() {
     private val _resetStep = MutableStateFlow<ResetPasswordStep>(ResetPasswordStep.EmailInput)
     val resetStep: StateFlow<ResetPasswordStep> = _resetStep.asStateFlow()
 
+    private val _isResettingPassword = MutableStateFlow(false)
+    val isResettingPassword: StateFlow<Boolean> = _isResettingPassword.asStateFlow()
+
     private val _profile = MutableStateFlow<User?>(null)
     val profile: StateFlow<User?> = _profile.asStateFlow()
 
@@ -116,11 +119,13 @@ class AuthViewModel : ViewModel() {
     fun sendResetCode(email: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
+            _isResettingPassword.value = true
             try {
                 AuthRepository.sendResetPasswordCode(email)
                 _authState.value = AuthState.Idle
                 _resetStep.value = ResetPasswordStep.CodeInput
             } catch (e: Exception) {
+                _isResettingPassword.value = false
                 val rawMessage = e.localizedMessage ?: e.message ?: ""
                 val errorMessage = when {
                     isNetworkError(rawMessage, e) -> "No internet connection."
@@ -167,6 +172,8 @@ class AuthViewModel : ViewModel() {
                     else -> "Failed to update password. Please try again."
                 }
                 _authState.value = AuthState.Error(errorMessage)
+            } finally {
+                _isResettingPassword.value = false
             }
         }
     }
@@ -174,6 +181,7 @@ class AuthViewModel : ViewModel() {
     fun resetPasswordFlow() {
         _authState.value = AuthState.Idle
         _resetStep.value = ResetPasswordStep.EmailInput
+        _isResettingPassword.value = false
     }
 
     fun loadProfile() {

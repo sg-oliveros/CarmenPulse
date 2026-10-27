@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carmenpulse.data.SupabaseClient
 import com.example.carmenpulse.ui.screens.AuthScreen
 import com.example.carmenpulse.ui.theme.CarmenPulseTheme
@@ -91,11 +92,14 @@ class MainActivity : FragmentActivity() {
                         }
                     }
 
+                    val authViewModel: AuthViewModel = viewModel()
+                    val isResettingPassword by authViewModel.isResettingPassword.collectAsState()
+
                     if (isLoading) {
                         LoadingScreen(
                             onFinished = { isLoading = false }
                         )
-                    } else if (isLoggedIn) {
+                    } else if (isLoggedIn && !isResettingPassword) {
                         MainScreen(
                             onLogout = { isLoggedIn = false }
                         )
@@ -103,7 +107,8 @@ class MainActivity : FragmentActivity() {
                         AuthScreen(
                             onLoginSuccess = {
                                 isLoggedIn = true
-                            }
+                            },
+                            authViewModel = authViewModel
                         )
                     }
                 }

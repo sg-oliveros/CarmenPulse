@@ -34,6 +34,10 @@ fun LoginScreen(
 
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     var resetEmailInput by remember { mutableStateOf("") }
+    var otpCodeInput by remember { mutableStateOf("") }
+    var newPasswordInput by remember { mutableStateOf("") }
+    var confirmPasswordInput by remember { mutableStateOf("") }
+    var newPasswordVisible by remember { mutableStateOf(false) }
     val resetPasswordState by authViewModel.resetPasswordState.collectAsState()
 
     val context = LocalContext.current
@@ -89,6 +93,9 @@ fun LoginScreen(
                 .padding(top = 10.dp)
                 .clickable {
                     resetEmailInput = email
+                    otpCodeInput = ""
+                    newPasswordInput = ""
+                    confirmPasswordInput = ""
                     authViewModel.clearResetPasswordState()
                     showForgotPasswordDialog = true
                 }
@@ -186,7 +193,12 @@ fun LoginScreen(
             },
             title = {
                 Text(
-                    text = "Reset Password",
+                    text = when (resetPasswordState) {
+                        is ResetPasswordState.CodeSent -> "Verify 6-Digit Code"
+                        is ResetPasswordState.CodeVerified -> "Set New Password"
+                        is ResetPasswordState.Success -> "Password Reset Complete"
+                        else -> "Reset Password"
+                    },
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -195,35 +207,58 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Enter your registered email address and we will send you a password reset link.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = resetEmailInput,
-                        onValueChange = { resetEmailInput = it },
-                        label = { Text("E-mail Address") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
                     when (resetPasswordState) {
-                        is ResetPasswordState.Loading -> {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Sending reset email...", style = MaterialTheme.typography.bodyMedium)
+                        is ResetPasswordState.CodeSent -> {
+                            Text(
+                                text = "A 6-digit code has been sent to $resetEmailInput. Enter it below to verify.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = otpCodeInput,
+                                onValueChange = { otpCodeInput = it },
+                                label = { Text("6-Digit Code") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+
+                        is ResetPasswordState.CodeVerified -> {
+                            Text(
+                                text = "Code verified! Enter your new password below.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = newPasswordInput,
+                                onValueChange = { newPasswordInput = it },
+                                label = { Text("New Password") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            OutlinedTextField(
+                                value = confirmPasswordInput,
+                                onValueChange = { confirmPasswordInput = it },
+                                label = { Text("Confirm New Password") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            if (newPasswordInput.isNotBlank() && confirmPasswordInput.isNotBlank() && newPasswordInput != confirmPasswordInput) {
+                                Text(
+                                    text = "Passwords do not match.",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
+
                         is ResetPasswordState.Success -> {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
@@ -238,36 +273,112 @@ fun LoginScreen(
                                 )
                             }
                         }
-                        is ResetPasswordState.Error -> {
+
+                        else -> {
                             Text(
-                                text = (resetPasswordState as ResetPasswordState.Error).message,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
+                                text = "Enter your registered email address and we will send you a 6-digit reset code.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = resetEmailInput,
+                                onValueChange = { resetEmailInput = it },
+                                label = { Text("E-mail Address") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
                             )
                         }
-                        else -> {}
+                    }
+
+                    if (resetPasswordState is ResetPasswordState.Loading) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Processing...", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    if (resetPasswordState is ResetPasswordState.Error) {
+                        Text(
+                            text = (resetPasswordState as ResetPasswordState.Error).message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        authViewModel.sendPasswordResetEmail(resetEmailInput)
-                    },
-                    enabled = resetEmailInput.isNotBlank() && resetPasswordState !is ResetPasswordState.Loading,
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text("Send Reset Link")
+                when (resetPasswordState) {
+                    is ResetPasswordState.CodeSent -> {
+                        Button(
+                            onClick = {
+                                authViewModel.verifyResetCode(resetEmailInput, otpCodeInput)
+                            },
+                            enabled = otpCodeInput.isNotBlank() && resetPasswordState !is ResetPasswordState.Loading,
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Text("Verify Code")
+                        }
+                    }
+
+                    is ResetPasswordState.CodeVerified -> {
+                        Button(
+                            onClick = {
+                                authViewModel.updateNewPassword(newPasswordInput)
+                            },
+                            enabled = newPasswordInput.isNotBlank() &&
+                                    confirmPasswordInput.isNotBlank() &&
+                                    newPasswordInput == confirmPasswordInput &&
+                                    resetPasswordState !is ResetPasswordState.Loading,
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Text("Update Password")
+                        }
+                    }
+
+                    is ResetPasswordState.Success -> {
+                        Button(
+                            onClick = {
+                                showForgotPasswordDialog = false
+                                authViewModel.clearResetPasswordState()
+                            },
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Text("Done")
+                        }
+                    }
+
+                    else -> {
+                        Button(
+                            onClick = {
+                                authViewModel.sendPasswordResetEmail(resetEmailInput)
+                            },
+                            enabled = resetEmailInput.isNotBlank() && resetPasswordState !is ResetPasswordState.Loading,
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Text("Send Reset Code")
+                        }
+                    }
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showForgotPasswordDialog = false
-                        authViewModel.clearResetPasswordState()
+                if (resetPasswordState !is ResetPasswordState.Success) {
+                    TextButton(
+                        onClick = {
+                            showForgotPasswordDialog = false
+                            authViewModel.clearResetPasswordState()
+                        }
+                    ) {
+                        Text("Cancel")
                     }
-                ) {
-                    Text("Cancel")
                 }
             }
         )

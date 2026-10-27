@@ -2,6 +2,7 @@ package com.example.carmenpulse.data.repository
 
 import com.example.carmenpulse.data.SupabaseClient
 import com.example.carmenpulse.data.models.User
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
@@ -47,6 +48,20 @@ object AuthRepository {
 
     suspend fun resetPassword(email: String) {
         SupabaseClient.supabase.auth.resetPasswordForEmail(email)
+    }
+
+    suspend fun verifyResetOtp(email: String, token: String) {
+        SupabaseClient.supabase.auth.verifyEmailOtp(
+            type = OtpType.Email.RECOVERY,
+            email = email,
+            token = token
+        )
+    }
+
+    suspend fun updatePassword(newPassword: String) {
+        SupabaseClient.supabase.auth.updateUser {
+            password = newPassword
+        }
     }
 
     suspend fun getCurrentProfile(): User? {

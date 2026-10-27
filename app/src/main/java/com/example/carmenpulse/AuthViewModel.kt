@@ -21,6 +21,8 @@ sealed interface AuthState {
 sealed interface ResetPasswordState {
     object Idle : ResetPasswordState
     object Loading : ResetPasswordState
+    object CodeSent : ResetPasswordState
+    object CodeVerified : ResetPasswordState
     data class Success(val message: String) : ResetPasswordState
     data class Error(val message: String) : ResetPasswordState
 }
@@ -118,13 +120,49 @@ class AuthViewModel : ViewModel() {
             _resetPasswordState.value = ResetPasswordState.Loading
             try {
                 AuthRepository.resetPassword(email.trim())
-                _resetPasswordState.value = ResetPasswordState.Success("Password reset email sent! Please check your inbox.")
+                _resetPasswordState.value = ResetPasswordState.CodeSent
             } catch (e: Exception) {
                 val rawMessage = e.localizedMessage ?: e.message ?: ""
                 val errorMessage = when {
                     isNetworkError(rawMessage, e) -> "No internet connection."
                     rawMessage.contains("invalid email", ignoreCase = true) || rawMessage.contains("email", ignoreCase = true) -> "Please enter a valid email address."
-                    else -> "Failed to send reset link. Please check your email and try again."
+                    else -> "Failed to send reset code. Please check your email and try again."
+                }
+                _resetPasswordState.value = ResetPasswordState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun verifyResetCode(email: String, code: String) {
+        viewModelScope.launch {
+            _resetPasswordState.value = ResetPasswordState.Loading
+            try {
+                AuthRepository.verifyResetOtp(email.trim(), code.trim())
+                _resetPasswordState.value = ResetPasswordState.CodeVerified
+            } catch (e: Exception) {
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+                    isNetworkError(rawMessage, e) -> "No internet connection."
+                    rawMessage.contains("expired", ignoreCase = true) || rawMessage.contains("otp", ignoreCase = true) || rawMessage.contains("token", ignoreCase = true) -> "Invalid or expired 6-digit code. Please check your email."
+                    else -> "Verification failed. Please check the code and try again."
+                }
+                _resetPasswordState.value = ResetPasswordState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun updateNewPassword(newPassword: String) {
+        viewModelScope.launch {
+            _resetPasswordState.value = ResetPasswordState.Loading
+            try {
+                AuthRepository.updatePassword(newPassword.trim())
+                _resetPasswordState.value = ResetPasswordState.Success("Password updated successfully! You can now log in.")
+            } catch (e: Exception) {
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+                    isNetworkError(rawMessage, e) -> "No internet connection."
+                    rawMessage.contains("weak", ignoreCase = true) || rawMessage.contains("short", ignoreCase = true) -> "Password must be at least 6 characters long."
+                    else -> "Failed to update password. Please try again."
                 }
                 _resetPasswordState.value = ResetPasswordState.Error(errorMessage)
             }

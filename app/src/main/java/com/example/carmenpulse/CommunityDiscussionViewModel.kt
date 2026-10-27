@@ -97,11 +97,15 @@ class CommunityDiscussionViewModel : ViewModel() {
     }
 
     fun postComment(serviceId: Long, content: String) {
-        val userId = currentUserId ?: 0L
         if (content.isBlank()) return
         viewModelScope.launch {
             try {
-                CommentRepository.postComment(serviceId, userId, content.trim())
+                val profile = AuthRepository.getCurrentProfile()
+                if (profile == null) {
+                    _error.value = "User session expired. Please log in again."
+                    return@launch
+                }
+                CommentRepository.postComment(serviceId, profile.user_id, content.trim())
                 loadComments(serviceId)
             } catch (e: Exception) {
                 _error.value = e.localizedMessage ?: "Failed to post comment"

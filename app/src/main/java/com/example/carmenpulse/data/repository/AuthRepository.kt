@@ -76,25 +76,52 @@ object AuthRepository {
                     contact_number = cn
                 )
             } else {
+                // Insert profile into public.users table so foreign keys work!
                 val metaData = authUser.userMetadata
                 val metaFirstName = metaData?.get("first_name")?.jsonPrimitive?.contentOrNull
                 val metaLastName = metaData?.get("last_name")?.jsonPrimitive?.contentOrNull
-                val metaRoleId = metaData?.get("role_id")?.jsonPrimitive?.longOrNull ?: 1L
+                val metaContact = metaData?.get("contact_number")?.jsonPrimitive?.contentOrNull
+                val metaRoleId = metaData?.get("role_id")?.jsonPrimitive?.longOrNull ?: 2L
+
+                val insertedData = try {
+                    SupabaseClient.supabase.from("users")
+                        .insert(buildJsonObject {
+                            put("auth_user_id", userId)
+                            put("email", authUser.email)
+                            put("first_name", metaFirstName)
+                            put("last_name", metaLastName)
+                            put("contact_number", metaContact)
+                            put("role_id", metaRoleId)
+                        }) {
+                            select()
+                        }.data
+                } catch (_: Exception) {
+                    ""
+                }
+
+                val newObj = try {
+                    json.parseToJsonElement(insertedData).jsonArray.firstOrNull()?.jsonObject
+                } catch (_: Exception) {
+                    null
+                }
+
+                val newUserId = newObj?.get("user_id")?.jsonPrimitive?.longOrNull ?: 1L
 
                 User(
-                    user_id = 1L,
+                    user_id = newUserId,
                     role_id = metaRoleId,
                     auth_user_id = userId,
                     first_name = metaFirstName,
                     last_name = metaLastName,
-                    email = authUser.email
+                    email = authUser.email,
+                    contact_number = metaContact
                 )
             }
         } catch (_: Exception) {
             val metaData = authUser.userMetadata
             val metaFirstName = metaData?.get("first_name")?.jsonPrimitive?.contentOrNull
             val metaLastName = metaData?.get("last_name")?.jsonPrimitive?.contentOrNull
-            val metaRoleId = metaData?.get("role_id")?.jsonPrimitive?.longOrNull ?: 1L
+            val metaRoleId = metaData?.get("role_id")?.jsonPrimitive?.longOrNull ?: 2L
 
             User(
                 user_id = 1L,

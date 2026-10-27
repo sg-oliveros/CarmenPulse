@@ -24,6 +24,7 @@ import com.example.carmenpulse.util.BiometricPromptManager
 @Composable
 fun LoginScreen(
     onNavigateToSignUp: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit = {},
     onLoginSuccess: () -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
@@ -83,7 +84,7 @@ fun LoginScreen(
             modifier = Modifier
                 .align(Alignment.End)
                 .padding(top = 10.dp)
-                .clickable { /* TODO: Implement forgot password action */ }
+                .clickable { onNavigateToForgotPassword() }
         )
 
         Spacer(modifier = Modifier.height(40.dp))

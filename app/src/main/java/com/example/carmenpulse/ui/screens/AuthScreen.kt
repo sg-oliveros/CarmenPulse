@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Path
@@ -23,76 +24,92 @@ import com.example.carmenpulse.ui.components.AuthToggleSwitch
 import com.example.carmenpulse.ui.components.CurvedBackground
 import com.example.carmenpulse.ui.theme.BrandGreen
 
+enum class AuthMode {
+    LOGIN,
+    SIGN_UP,
+    FORGOT_PASSWORD
+}
+
 /**
- * AuthScreen provides the login and registration container with responsive dark theme support.
+ * AuthScreen provides the login, registration, and forgot password container.
  */
 @Composable
 fun AuthScreen(
     onLoginSuccess: () -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    var isLoginSelected by remember { mutableStateOf(true) }
-
+    var authMode by rememberSaveable { mutableStateOf(AuthMode.LOGIN) }
     val isDark = isSystemInDarkTheme()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            // Adapts background color dynamically to current theme (light vs dark)
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Dynamic Curved Background Layer - adapts container color in dark mode
-        CurvedBackground(
+    if (authMode == AuthMode.FORGOT_PASSWORD) {
+        ForgotPasswordScreen(
+            onNavigateToLogin = {
+                authMode = AuthMode.LOGIN
+                authViewModel.resetState()
+            },
+            authViewModel = authViewModel
+        )
+    } else {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 220.dp),
-            color = if (isDark) MaterialTheme.colorScheme.primaryContainer else BrandGreen
-        )
-
-        // UI Content Overlay Layer
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Spacer(modifier = Modifier.height(90.dp))
-
-            // App Title Logo with Heartbeat (dynamically tinted via primary theme color)
-            LogoWithHeartbeat()
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Switcher Pill Toggle
-            AuthToggleSwitch(
-                isLoginSelected = isLoginSelected,
-                onToggle = { isLoginSelected = it }
-            )
-
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // Form Content Layer
-            Box(
+            CurvedBackground(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 28.dp)
+                    .padding(top = 220.dp),
+                color = if (isDark) MaterialTheme.colorScheme.primaryContainer else BrandGreen
+            )
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (isLoginSelected) {
-                    LoginScreen(
-                        onNavigateToSignUp = {
-                            isLoginSelected = false
-                            authViewModel.resetState()
-                        },
-                        onLoginSuccess = onLoginSuccess,
-                        authViewModel = authViewModel
-                    )
-                } else {
-                    SignUpScreen(
-                        onNavigateToLogin = {
-                            isLoginSelected = true
-                            authViewModel.resetState()
-                        },
-                        onSignUpSuccess = onLoginSuccess,
-                        authViewModel = authViewModel
-                    )
+                Spacer(modifier = Modifier.height(90.dp))
+
+                LogoWithHeartbeat()
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                AuthToggleSwitch(
+                    isLoginSelected = (authMode == AuthMode.LOGIN),
+                    onToggle = { isLogin ->
+                        authMode = if (isLogin) AuthMode.LOGIN else AuthMode.SIGN_UP
+                        authViewModel.resetState()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(60.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 28.dp)
+                ) {
+                    if (authMode == AuthMode.LOGIN) {
+                        LoginScreen(
+                            onNavigateToSignUp = {
+                                authMode = AuthMode.SIGN_UP
+                                authViewModel.resetState()
+                            },
+                            onNavigateToForgotPassword = {
+                                authMode = AuthMode.FORGOT_PASSWORD
+                                authViewModel.resetState()
+                            },
+                            onLoginSuccess = onLoginSuccess,
+                            authViewModel = authViewModel
+                        )
+                    } else {
+                        SignUpScreen(
+                            onNavigateToLogin = {
+                                authMode = AuthMode.LOGIN
+                                authViewModel.resetState()
+                            },
+                            onSignUpSuccess = onLoginSuccess,
+                            authViewModel = authViewModel
+                        )
+                    }
                 }
             }
         }
@@ -101,18 +118,16 @@ fun AuthScreen(
 
 @Composable
 fun LogoWithHeartbeat() {
-    // Tint logo text and line according to theme primary color
     val logoColor = MaterialTheme.colorScheme.primary
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = "CareConnect",
+            text = "CarmenPulse",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = logoColor
         )
         Spacer(modifier = Modifier.width(8.dp))
-        // Logo pulse heartbeat graphic
         Canvas(modifier = Modifier.size(40.dp, 30.dp)) {
             val path = Path().apply {
                 val w = size.width

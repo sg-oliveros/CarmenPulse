@@ -18,10 +18,20 @@ sealed interface AuthState {
     data class Error(val message: String) : AuthState
 }
 
+sealed interface ResetPasswordStep {
+    object EmailInput : ResetPasswordStep
+    object CodeInput : ResetPasswordStep
+    object NewPasswordInput : ResetPasswordStep
+    object Completed : ResetPasswordStep
+}
+
 class AuthViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    private val _resetStep = MutableStateFlow<ResetPasswordStep>(ResetPasswordStep.EmailInput)
+    val resetStep: StateFlow<ResetPasswordStep> = _resetStep.asStateFlow()
 
     private val _profile = MutableStateFlow<User?>(null)
     val profile: StateFlow<User?> = _profile.asStateFlow()
@@ -101,6 +111,69 @@ class AuthViewModel : ViewModel() {
     // so leftover Success state can't leak into the next screen shown.
     fun resetState() {
         _authState.value = AuthState.Idle
+    }
+
+    fun sendResetCode(email: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                AuthRepository.sendResetPasswordCode(email)
+                _authState.value = AuthState.Idle
+                _resetStep.value = ResetPasswordStep.CodeInput
+            } catch (e: Exception) {
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+                    isNetworkError(rawMessage, e) -> "No internet connection."
+                    rawMessage.contains("rate limit", ignoreCase = true) -> "Too many requests. Please wait a moment before trying again."
+                    rawMessage.contains("invalid email", ignoreCase = true) -> "Please enter a valid Gmail address."
+                    else -> "Failed to send verification code. Please check your email."
+                }
+                _authState.value = AuthState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun verifyResetCode(email: String, code: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                AuthRepository.verifyResetCode(email, code)
+                _authState.value = AuthState.Idle
+                _resetStep.value = ResetPasswordStep.NewPasswordInput
+            } catch (e: Exception) {
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+                    isNetworkError(rawMessage, e) -> "No internet connection."
+                    rawMessage.contains("otp", ignoreCase = true) || rawMessage.contains("token", ignoreCase = true) || rawMessage.contains("expired", ignoreCase = true) || rawMessage.contains("invalid", ignoreCase = true) -> "Invalid or expired 6-digit code."
+                    else -> "Verification failed. Please check the code and try again."
+                }
+                _authState.value = AuthState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun updatePassword(newPassword: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                AuthRepository.updatePassword(newPassword)
+                _authState.value = AuthState.Success
+                _resetStep.value = ResetPasswordStep.Completed
+            } catch (e: Exception) {
+                val rawMessage = e.localizedMessage ?: e.message ?: ""
+                val errorMessage = when {
+                    isNetworkError(rawMessage, e) -> "No internet connection."
+                    rawMessage.contains("password", ignoreCase = true) -> "Password is too weak or short."
+                    else -> "Failed to update password. Please try again."
+                }
+                _authState.value = AuthState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun resetPasswordFlow() {
+        _authState.value = AuthState.Idle
+        _resetStep.value = ResetPasswordStep.EmailInput
     }
 
     fun loadProfile() {

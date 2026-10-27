@@ -59,9 +59,31 @@ object AuthRepository {
     }
 
     suspend fun updatePassword(newPassword: String) {
+        val user = SupabaseClient.supabase.auth.currentSessionOrNull()?.user
+
+        // 1. Update password in Supabase Auth
         SupabaseClient.supabase.auth.updateUser {
             password = newPassword
         }
+
+        // 2. Update password_hash in public.users table (per database schema)
+        if (user != null) {
+            val uid = user.id
+            try {
+                SupabaseClient.supabase.from("users").update(buildJsonObject {
+                    put("password_hash", newPassword)
+                }) {
+                    filter {
+                        eq("auth_user_id", uid)
+                    }
+                }
+            } catch (_: Exception) {
+                // Ignore if database RLS or trigger manages password_hash
+            }
+        }
+
+        // 3. Close the recovery session so user logs in with new password
+        SupabaseClient.supabase.auth.signOut()
     }
 
     suspend fun getCurrentProfile(): User? {
